@@ -14,8 +14,8 @@
 
     <LinearLayout
         android:layout_width="fill_parent"
-        android:layout_height="250dp"
-        android:orientation="horizontal"
+        android:layout_height="300dp"
+        android:orientation="vertical"
         android:layout_gravity="center"
         android:id="@+id/main_container">
         <Button
@@ -27,7 +27,7 @@
             android:id="@+id/hostend"
             android:layout_height="wrap_content"
             android:layout_width="wrap_content"
-            android:text="host" />
+            android:text="host end" />
 
         <Button
             android:id="@+id/client"
@@ -38,6 +38,16 @@
             android:id="@+id/clientend"
             android:layout_height="wrap_content"
             android:layout_width="wrap_content"
-            android:text="client" />
+            android:text="client end" />
+        <Button
+            android:id="@+id/clientconnect"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content"
+            android:text="client connect" />
+        <Button
+            android:id="@+id/clientdisconnect"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content"
+            android:text="client disconnect" />
     </LinearLayout>
 </RelativeLayout>

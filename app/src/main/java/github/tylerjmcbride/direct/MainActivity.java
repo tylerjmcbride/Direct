@@ -16,6 +16,8 @@ public class MainActivity extends AppCompatActivity {
     private Button clientButton;
     private Button hostButtonend;
     private Button clientButtonend;
+    private Button clientButtonconnect;
+    private Button clientButtondisconnect;
 
     private Client client;
     private Host host;
@@ -62,6 +64,46 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 client.stopDiscovery(new WifiP2pManager.ActionListener() {
+                    @Override
+                    public void onSuccess() {
+
+                    }
+
+                    @Override
+                    public void onFailure(int reason) {
+
+                    }
+                });
+            }
+        });
+
+        clientButtonconnect = (Button) findViewById(R.id.clientconnect);
+
+        clientButtonconnect.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(client.getNearbyHosts().size() > 0) {
+                    client.connect(client.getNearbyHosts().get(0), new WifiP2pManager.ActionListener() {
+                        @Override
+                        public void onSuccess() {
+
+                        }
+
+                        @Override
+                        public void onFailure(int reason) {
+
+                        }
+                    });
+                }
+            }
+        });
+
+        clientButtondisconnect = (Button) findViewById(R.id.clientdisconnect);
+
+        clientButtondisconnect.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                client.disconnect(new WifiP2pManager.ActionListener() {
                     @Override
                     public void onSuccess() {
 

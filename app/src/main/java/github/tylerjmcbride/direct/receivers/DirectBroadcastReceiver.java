@@ -6,23 +6,21 @@ import android.content.Intent;
 import android.net.NetworkInfo;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pManager;
-
 import android.net.wifi.p2p.WifiP2pManager.Channel;
-import android.util.Log;
 
-import github.tylerjmcbride.direct.Direct;
-
+/**
+ * Wrapper class to eliminate the need for the ugly {@link BroadcastReceiver#onReceive(Context, Intent)}
+ * method.
+ */
 public abstract class DirectBroadcastReceiver extends BroadcastReceiver {
 
     protected WifiP2pManager manager;
     protected Channel channel;
-    protected Direct direct;
 
-    public DirectBroadcastReceiver(WifiP2pManager manager, Channel channel, Direct direct) {
+    public DirectBroadcastReceiver(WifiP2pManager manager, Channel channel) {
         super();
         this.manager = manager;
         this.channel = channel;
-        this.direct = direct;
     }
 
     @Override
@@ -43,20 +41,11 @@ public abstract class DirectBroadcastReceiver extends BroadcastReceiver {
         }
     }
 
-    protected void stateChanged(Context context, Intent intent, boolean wifiEnabled) {
-        Log.v(Direct.TAG, "WiFi P2P is no longer enabled.");
-    }
+    protected abstract void connectionChanged(Context context, Intent intent, NetworkInfo info);
 
-    protected void peersChanged(Context context, Intent intent) {
-        Log.d(Direct.TAG, "Peers have changed.");
-    }
+    protected abstract void peersChanged(Context context, Intent intent);
 
-    protected void connectionChanged(Context context, Intent intent, NetworkInfo info) {
-        Log.d(Direct.TAG, "connection changed");
-    }
+    protected abstract void stateChanged(Context context, Intent intent, boolean wifiEnabled);
 
-    protected void thisDeviceChanged(Context context, Intent intent, WifiP2pDevice device) {
-        Log.d(Direct.TAG, "self changed");
-        direct.setSelf(device);
-    }
+    protected abstract void thisDeviceChanged(Context context, Intent intent, WifiP2pDevice device);
 }
