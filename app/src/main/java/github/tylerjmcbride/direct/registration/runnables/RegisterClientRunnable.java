@@ -10,18 +10,19 @@ import java.net.Socket;
 import java.util.List;
 
 import github.tylerjmcbride.direct.Direct;
-import github.tylerjmcbride.direct.json.ServerJSON;
 import github.tylerjmcbride.direct.listeners.ClientRegisteredListener;
 import github.tylerjmcbride.direct.model.Device;
 
 public class RegisterClientRunnable implements Runnable {
 
+    private Direct direct;
     private Socket clientSocket;
     private List<Device> registeredClients;
     private ClientRegisteredListener listener;
 
-    public RegisterClientRunnable(Socket clientSocket, List<Device> registeredClients, ClientRegisteredListener listener) {
+    public RegisterClientRunnable(Socket clientSocket, Direct direct, List<Device> registeredClients, ClientRegisteredListener listener) {
         this.clientSocket = clientSocket;
+        this.direct = direct;
         this.registeredClients = registeredClients;
         this.listener = listener;
     }
@@ -31,21 +32,14 @@ public class RegisterClientRunnable implements Runnable {
         try {
             DataInputStream from = new DataInputStream(clientSocket.getInputStream());
             DataOutputStream to = new DataOutputStream(clientSocket.getOutputStream());
+
             final Device client = LoganSquare.parse(from.readUTF(), Device.class);
+            registeredClients.add(client);
 
-            if (!registeredClients.contains(client)) {
-                registeredClients.add(client);
-                to.writeUTF(LoganSquare.serialize(new ServerJSON()));
-                to.flush();
+            to.writeUTF(LoganSquare.serialize(direct.getThisDevice()));
+            to.flush();
 
-                listener.onClientRegistered(client);
-            } else {
-                to.writeUTF("UNREGISTER_DIRECT_DEVICE");
-                to.flush();
-
-                registeredClients.remove(client);
-                listener.onClientUnregistered(client);
-            }
+            listener.onClientRegistered(client);
 
             from.close();
             to.close();

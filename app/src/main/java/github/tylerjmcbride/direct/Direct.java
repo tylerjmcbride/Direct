@@ -61,4 +61,12 @@ public abstract class Direct {
             }
         });
     }
+
+    /**
+     * Returns this {@link Device}.
+     * @return This device.
+     */
+    public Device getThisDevice() {
+        return new Device(thisDevice);
+    }
 }

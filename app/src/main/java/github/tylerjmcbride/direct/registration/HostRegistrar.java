@@ -29,6 +29,10 @@ public class HostRegistrar extends Registrar {
 
     private List<Device> registeredClients = Collections.synchronizedList(new ArrayList<Device>());
 
+    public HostRegistrar(Direct direct) {
+        super(direct);
+    }
+
     /**
      * Starts the registration process.
      * @param listener The {@link ServerSocketInitializationCompleteListener} to capture the success of
@@ -43,7 +47,7 @@ public class HostRegistrar extends Registrar {
             public void onSuccess(ServerSocket socket) {
                 Log.d(Direct.TAG, String.format("Succeeded to initialize registration socket on port %d.", DEFAULT_REGISTRATION_PORT));
                 serverSocket = socket;
-                registrationThread = new Thread(new HostRegistrarRunnable(socket, registeredClients, clientRegisteredListener));
+                registrationThread = new Thread(new HostRegistrarRunnable(socket, direct, registeredClients, clientRegisteredListener));
                 registrationThread.start();
                 listener.onSuccess(socket);
             }
@@ -58,7 +62,7 @@ public class HostRegistrar extends Registrar {
                     public void onSuccess(ServerSocket socket) {
                         Log.d(Direct.TAG, String.format("Succeeded to initialize registration socket on port %d.", socket.getLocalPort()));
                         serverSocket = socket;
-                        registrationThread = new Thread(new HostRegistrarRunnable(socket, registeredClients, clientRegisteredListener));
+                        registrationThread = new Thread(new HostRegistrarRunnable(socket, direct, registeredClients, clientRegisteredListener));
                         registrationThread.start();
                         listener.onSuccess(socket);
                     }

@@ -71,7 +71,7 @@ public class Host extends Direct {
             }
         };
         application.getApplicationContext().registerReceiver(receiver, intentFilter);
-        registrar = new HostRegistrar();
+        registrar = new HostRegistrar(this);
 
         record.put(SERVICE_NAME_TAG, service);
         info = WifiP2pDnsSdServiceInfo.newInstance(instance, service.concat("._tcp"), record);

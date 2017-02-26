@@ -21,12 +21,14 @@ public class HostRegistrarRunnable implements Runnable {
 
     private ExecutorService executor = Executors.newFixedThreadPool(5);
 
+    private Direct direct;
     private ServerSocket registrationSocket;
     private List<Device> registeredClients;
     private ClientRegisteredListener listener;
 
-    public HostRegistrarRunnable(ServerSocket registrationSocket, List<Device> registeredClients, ClientRegisteredListener listener) {
+    public HostRegistrarRunnable(ServerSocket registrationSocket, Direct direct, List<Device> registeredClients, ClientRegisteredListener listener) {
         this.registrationSocket = registrationSocket;
+        this.direct = direct;
         this.registeredClients = registeredClients;
         this.listener = listener;
     }
@@ -36,7 +38,7 @@ public class HostRegistrarRunnable implements Runnable {
         try {
             while (!Thread.currentThread().isInterrupted()) {
                 Socket clientSocket = registrationSocket.accept();
-                executor.submit(new RegisterClientRunnable(clientSocket, registeredClients, listener));
+                executor.submit(new RegisterClientRunnable(clientSocket, direct, registeredClients, listener));
             }
             // Current thread has been interrupted, clean up registration socket
             registrationSocket.close();
