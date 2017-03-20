@@ -9,6 +9,7 @@ import java.net.ServerSocket;
 import github.tylerjmcbride.direct.Direct;
 import github.tylerjmcbride.direct.listeners.DataListener;
 import github.tylerjmcbride.direct.listeners.ServerSocketInitializationCompleteListener;
+import github.tylerjmcbride.direct.registration.runnables.DataHandlerRunnable;
 
 public class DataHandler {
 
@@ -17,13 +18,13 @@ public class DataHandler {
     private static final int BUFFER_SIZE = 65536;
 
     private ServerSocket serverSocket;
-    private DataListener listener;
+    private DataListener dataListener;
     private Handler handler;
 
 
     public DataHandler(Handler handler) {
         this.handler = handler;
-        this.listener = null;
+        this.dataListener = null;
     }
 
     /**
@@ -37,6 +38,7 @@ public class DataHandler {
             public void onSuccess(ServerSocket socket) {
                 Log.d(Direct.TAG, String.format("Succeeded to initialize data receiver socket on port %d.", socket.getLocalPort()));
                 serverSocket = socket;
+                new Thread(new DataHandlerRunnable(socket, handler, dataListener)).start();
                 listener.onSuccess(socket);
             }
 
@@ -63,7 +65,7 @@ public class DataHandler {
         }
     }
 
-    public void setListener(DataListener listener) {
-        this.listener = listener;
+    public void setListener(DataListener dataListener) {
+        this.dataListener = dataListener;
     }
 }
