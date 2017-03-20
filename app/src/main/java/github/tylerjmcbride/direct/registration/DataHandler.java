@@ -1,36 +1,33 @@
 package github.tylerjmcbride.direct.registration;
 
-import android.net.wifi.p2p.WifiP2pDevice;
 import android.os.Handler;
 import android.util.Log;
 
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.util.List;
 
 import github.tylerjmcbride.direct.Direct;
+import github.tylerjmcbride.direct.listeners.DataListener;
 import github.tylerjmcbride.direct.listeners.ServerSocketInitializationCompleteListener;
-import github.tylerjmcbride.direct.model.Device;
-import github.tylerjmcbride.direct.registration.runnables.HostRegistrarRunnable;
 
-/**
- * A {@link HostRegistrar} is in charge of handling the registration of client {@link WifiP2pDevice}s.
- */
-public class HostRegistrar extends Registrar {
+public class DataHandler {
 
     private static final int DEFAULT_REGISTRATION_PORT = 37500;
     private static final int MAX_SERVER_CONNECTIONS = 25;
+    private static final int BUFFER_SIZE = 65536;
 
     private ServerSocket serverSocket;
-    private List<Device> registeredClients;
+    private DataListener listener;
+    private Handler handler;
 
-    public HostRegistrar(Direct direct, List<Device> registeredClients, Handler handler) {
-        super(direct, handler);
-        this.registeredClients = registeredClients;
+
+    public DataHandler(Handler handler) {
+        this.handler = handler;
+        this.listener = null;
     }
 
     /**
-     * Starts the registration process.
+     * Starts the data receiver.
      * @param listener The {@link ServerSocketInitializationCompleteListener} to capture the result of
      *                 the initialization.
      */
@@ -38,25 +35,23 @@ public class HostRegistrar extends Registrar {
         ServerSockets.initializeServerSocket(DEFAULT_REGISTRATION_PORT, MAX_SERVER_CONNECTIONS, BUFFER_SIZE, new ServerSocketInitializationCompleteListener() {
             @Override
             public void onSuccess(ServerSocket socket) {
-                Log.d(Direct.TAG, String.format("Succeeded to initialize registration socket on port %d.", socket.getLocalPort()));
+                Log.d(Direct.TAG, String.format("Succeeded to initialize data receiver socket on port %d.", socket.getLocalPort()));
                 serverSocket = socket;
-                new Thread(new HostRegistrarRunnable(socket, direct, registeredClients)).start();
                 listener.onSuccess(socket);
             }
 
             @Override
             public void onFailure() {
-                Log.e(Direct.TAG, "Failed to initialize registration socket.");
+                Log.e(Direct.TAG, "Failed to initialize data receiver socket.");
                 listener.onFailure();
             }
         });
     }
 
     /**
-     * Stops the registration process.
+     * Stops the data receiver.
      */
     public void stop() {
-        registeredClients.clear();
         if(serverSocket != null) {
             try {
                 serverSocket.close();
@@ -66,5 +61,9 @@ public class HostRegistrar extends Registrar {
                 Log.e(Direct.TAG, "Failed to stop registrar.");
             }
         }
+    }
+
+    public void setListener(DataListener listener) {
+        this.listener = listener;
     }
 }

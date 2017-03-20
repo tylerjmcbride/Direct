@@ -1,12 +1,11 @@
 package github.tylerjmcbride.direct.model;
 
 import com.bluelinelabs.logansquare.annotation.JsonField;
-import com.bluelinelabs.logansquare.annotation.JsonObject;
 
 import java.util.Objects;
 
-@JsonObject
 public class Device {
+
     /**
      * The device name is a user friendly string to identify a Wi-Fi p2p device
      */
@@ -26,10 +25,10 @@ public class Device {
     public int ipAddress;
 
     /**
-     * The device port to transfer data
+     * The device dataPort to transfer data
      */
     @JsonField
-    public int port;
+    public int dataPort;
 
     /**
      * Default constructor required for {@link com.bluelinelabs.logansquare.LoganSquare}.
@@ -43,13 +42,13 @@ public class Device {
      * @param deviceName The {@link Device#deviceName}.
      * @param deviceAddress The {@link Device#deviceAddress}.
      * @param ipAddress The {@link Device#ipAddress}.
-     * @param port The {@link Device#port}.
+     * @param dataPort The {@link Device#dataPort}.
      */
-    public Device(String deviceName, String deviceAddress, int ipAddress, int port) {
+    public Device(String deviceName, String deviceAddress, int ipAddress, int dataPort) {
         this.deviceName = deviceName;
         this.deviceAddress = deviceAddress;
         this.ipAddress = ipAddress;
-        this.port = port;
+        this.dataPort = dataPort;
     }
 
     /**
@@ -64,7 +63,7 @@ public class Device {
         this.deviceName = source.deviceName;
         this.deviceAddress = source.deviceAddress;
         this.ipAddress = source.ipAddress;
-        this.port = source.port;
+        this.dataPort = source.dataPort;
     }
 
     @Override

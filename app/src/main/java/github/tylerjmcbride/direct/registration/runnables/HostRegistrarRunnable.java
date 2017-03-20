@@ -2,51 +2,65 @@ package github.tylerjmcbride.direct.registration.runnables;
 
 import android.util.Log;
 
-import java.io.IOException;
+import com.bluelinelabs.logansquare.LoganSquare;
+
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import github.tylerjmcbride.direct.Direct;
-import github.tylerjmcbride.direct.listeners.ClientRegisteredListener;
 import github.tylerjmcbride.direct.model.Device;
 
 /**
  * The {@link HostRegistrarRunnable} registers incoming clients on its respective {@link Thread} until
  * {@link ServerSocket#close()} is called, or alternatively {@link Thread#interrupt()} is called.
  */
-public class HostRegistrarRunnable implements Runnable {
-
-    private ExecutorService executor = Executors.newFixedThreadPool(5);
+public class HostRegistrarRunnable extends ServerSocketRunnable {
 
     private Direct direct;
-    private ServerSocket registrationSocket;
     private List<Device> registeredClients;
-    private ClientRegisteredListener listener;
 
-    public HostRegistrarRunnable(ServerSocket registrationSocket, Direct direct, List<Device> registeredClients, ClientRegisteredListener listener) {
-        this.registrationSocket = registrationSocket;
+    public HostRegistrarRunnable(ServerSocket registrationSocket, Direct direct, List<Device> registeredClients) {
+        super(registrationSocket, Executors.newFixedThreadPool(5));
         this.direct = direct;
         this.registeredClients = registeredClients;
-        this.listener = listener;
     }
 
     @Override
-    public void run() {
-        try {
-            while (!Thread.currentThread().isInterrupted()) {
-                Socket clientSocket = registrationSocket.accept();
-                executor.submit(new RegisterClientRunnable(clientSocket, direct, registeredClients, listener));
-            }
-            // Current thread has been interrupted, clean up registration socket
-            registrationSocket.close();
-        } catch (IOException e) { // Really a SocketException
-            Log.d(Direct.TAG, String.format("Succeeded to close registration socket on port %d.", registrationSocket.getLocalPort()));
-        }
+    public void onConnected(final Socket clientSocket) {
+        executor.submit(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    DataInputStream from = new DataInputStream(clientSocket.getInputStream());
+                    DataOutputStream to = new DataOutputStream(clientSocket.getOutputStream());
 
-        // Clean up executor service
-        executor.shutdownNow();
+                    // Client sends details about their device
+                    final Device client = LoganSquare.parse(from.readUTF(), Device.class);
+                    registeredClients.add(client);
+                    Log.d(Direct.TAG, registeredClients.toString());
+
+                    // Reply by sending details about the host device
+                    to.writeUTF(LoganSquare.serialize(direct.getThisDevice()));
+                    to.flush();
+
+                    from.close();
+                    to.close();
+
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    Log.e(Direct.TAG, "Failed to register client.");
+                } finally {
+                    try {
+                        clientSocket.close();
+                    } catch (Exception ex) {
+                        Log.e(Direct.TAG, "Failed to close client socket.");
+                    }
+                }
+            }
+        });
     }
 }

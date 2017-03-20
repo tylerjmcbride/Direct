@@ -1,5 +1,6 @@
 package github.tylerjmcbride.direct.registration.runnables;
 
+import android.os.Handler;
 import android.util.Log;
 
 import com.bluelinelabs.logansquare.LoganSquare;
@@ -17,25 +18,35 @@ public class ClientRegistrarRunnable implements Runnable {
 
     private Device thisDevice;
     private Socket serverSocket;
+    private Handler handler;
     private RegisteredWithServerListener listener;
 
-    public ClientRegistrarRunnable(Device thisDevice, Socket serverSocket, RegisteredWithServerListener listener) {
+    public ClientRegistrarRunnable(Device thisDevice, Socket serverSocket, Handler handler, RegisteredWithServerListener listener) {
         this.thisDevice = thisDevice;
         this.serverSocket = serverSocket;
+        this.handler = handler;
         this.listener = listener;
     }
 
     @Override
     public void run() {
-        Device host = null;
         try {
             DataOutputStream to = new DataOutputStream(serverSocket.getOutputStream());
             DataInputStream from = new DataInputStream(serverSocket.getInputStream());
 
+            // Send details about the client device
             to.writeUTF(LoganSquare.serialize(thisDevice));
             to.flush();
 
-            host = LoganSquare.parse(from.readUTF(), Device.class);
+            // Retrieve details about the host device
+            final Device host = LoganSquare.parse(from.readUTF(), Device.class);
+            Log.d(Direct.TAG, host.toString());
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    listener.onSuccess(host);
+                }
+            });
 
             from.close();
             to.close();
@@ -49,6 +60,5 @@ public class ClientRegistrarRunnable implements Runnable {
                 Log.e(Direct.TAG, "Failed to close registration socket.");
             }
         }
-        listener.onSuccess(host);
     }
 }
