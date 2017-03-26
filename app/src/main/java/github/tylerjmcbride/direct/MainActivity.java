@@ -7,8 +7,13 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+
+import github.tylerjmcbride.direct.listeners.DataCallback;
+import github.tylerjmcbride.direct.model.data.Data;
+import github.tylerjmcbride.direct.model.data.HandshakeData;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -18,6 +23,7 @@ public class MainActivity extends AppCompatActivity {
     private Button clientButtonend;
     private Button clientButtonconnect;
     private Button clientButtondisconnect;
+    private Button clientButtonsend;
 
     private Client client;
     private Host host;
@@ -83,7 +89,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 if(client.getNearbyHosts().size() > 0) {
-                    client.connect(client.getNearbyHosts().get(0), new WifiP2pManager.ActionListener() {
+                    client.connect(client.getNearbyHosts().get(0), new DataCallback() {
+                        @Override
+                        public void onReceived(Data data) {
+                            Log.d(Direct.TAG, "CLIENT YOU GOT THE DATA HURRAY!");
+                        }
+                    }, new WifiP2pManager.ActionListener() {
                         @Override
                         public void onSuccess() {
 
@@ -123,7 +134,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 host = new Host(getApplication(), "JUKE", 60606, Build.MODEL + " " + Build.USER);
-                host.startService(new WifiP2pManager.ActionListener() {
+                host.startService(new DataCallback() {
+                    @Override
+                    public void onReceived(Data data) {
+                        Log.d(Direct.TAG, "HOST YOU GOT THE DATA HURRAY!");
+                    }
+                }, new WifiP2pManager.ActionListener() {
                     @Override
                     public void onSuccess() {
 
@@ -153,6 +169,15 @@ public class MainActivity extends AppCompatActivity {
 
                     }
                 });
+            }
+        });
+
+        clientButtonsend = (Button) findViewById(R.id.clientsend);
+
+        clientButtonsend.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                client.sendData(new HandshakeData("lol", 0));
             }
         });
     }

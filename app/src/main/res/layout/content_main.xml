@@ -14,7 +14,7 @@
 
     <LinearLayout
         android:layout_width="fill_parent"
-        android:layout_height="300dp"
+        android:layout_height="400dp"
         android:orientation="vertical"
         android:layout_gravity="center"
         android:id="@+id/main_container">
@@ -49,5 +49,10 @@
             android:layout_height="wrap_content"
             android:layout_width="wrap_content"
             android:text="client disconnect" />
+        <Button
+            android:id="@+id/clientsend"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content"
+            android:text="client send" />
     </LinearLayout>
 </RelativeLayout>

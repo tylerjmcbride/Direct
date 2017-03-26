@@ -32,26 +32,22 @@ public final class ServerSockets {
         // Attempt to initialize the server socket on the given port
         initialize(port, maxServerConnections, bufferSize, new ServerSocketInitializationCompleteListener() {
             @Override
-            public void onSuccess(ServerSocket socket) {
-                Log.d(Direct.TAG, String.format("Succeeded to initialize server socket on port %d.", port));
-                listener.onSuccess(socket);
+            public void onSuccess(ServerSocket serverSocket) {
+                listener.onSuccess(serverSocket);
             }
 
             @Override
             public void onFailure() {
-                Log.d(Direct.TAG, String.format("Failed to initialize server socket on port %d.", port));
 
                 // Attempt to initialize server socket on a random port
                 initialize(0, maxServerConnections, bufferSize, new ServerSocketInitializationCompleteListener() {
                     @Override
-                    public void onSuccess(ServerSocket socket) {
-                        Log.d(Direct.TAG, String.format("Succeeded to initialize server socket on port %d.", socket.getLocalPort()));
-                        listener.onSuccess(socket);
+                    public void onSuccess(ServerSocket serverSocket) {
+                        listener.onSuccess(serverSocket);
                     }
 
                     @Override
                     public void onFailure() {
-                        Log.d(Direct.TAG, "Failed to initialize server socket on random port.");
                         listener.onFailure();
                     }
                 });

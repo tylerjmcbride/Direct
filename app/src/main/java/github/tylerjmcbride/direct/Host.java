@@ -12,13 +12,19 @@ import android.util.Log;
 
 import java.net.ServerSocket;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import github.tylerjmcbride.direct.listeners.DataCallback;
+import github.tylerjmcbride.direct.listeners.HandshakeListener;
 import github.tylerjmcbride.direct.listeners.ServerSocketInitializationCompleteListener;
-import github.tylerjmcbride.direct.model.Device;
+import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
+import github.tylerjmcbride.direct.model.data.Data;
 import github.tylerjmcbride.direct.receivers.DirectBroadcastReceiver;
 import github.tylerjmcbride.direct.registration.HostRegistrar;
 
@@ -31,7 +37,8 @@ public class Host extends Direct {
     private Map<String, String> record = new HashMap<>();
     private Thread serviceBroadcastingThread;
 
-    private List<Device> registeredClients = Collections.synchronizedList(new ArrayList<Device>());
+    private Collection<WifiP2pDevice> clients = Collections.emptyList();
+    private Set<WifiP2pDeviceInfo> clientsInfo = new HashSet<>();
 
     public Host(Application application, final String service, final int serverPort, final String instance) {
         super(application, service, serverPort, instance);
@@ -39,15 +46,30 @@ public class Host extends Direct {
             @Override
             protected void connectionChanged(WifiP2pInfo p2pInfo, NetworkInfo networkInfo, WifiP2pGroup p2pGroup) {
                 if (p2pInfo.groupFormed && networkInfo.isConnected()) {
-                    for(WifiP2pDevice client : p2pGroup.getClientList()) {
+                    clients = p2pGroup.getClientList();
 
+                    for(WifiP2pDeviceInfo info : clientsInfo) {
+                        boolean containsClient = false;
+                        for(WifiP2pDevice client : clients) {
+                            if(client.deviceAddress.equals(info.getMacAddress())) {
+                                containsClient = true;
+                            }
+                        }
+
+                        // Prune irrelevant client information
+                        if(containsClient == false) {
+                            Log.d(TAG, info.getMacAddress() + " has disconnected.");
+                            clientsInfo.remove(info);
+                        }
                     }
+                } else {
+                    clients = Collections.emptyList();
+                    clientsInfo.clear();
                 }
             }
 
             @Override
             protected void peersChanged() {
-                Log.d(TAG, "Peers changed.");
                 manager.requestPeers(channel, new WifiP2pManager.PeerListListener() {
                     @Override
                     public void onPeersAvailable(WifiP2pDeviceList peers) {
@@ -58,85 +80,114 @@ public class Host extends Direct {
 
             @Override
             protected void stateChanged(boolean wifiEnabled) {
-                Log.d(TAG, "State changed.");
+//                Log.d(TAG, "State changed.");
             }
 
             @Override
             protected void discoveryChanged(boolean discoveryEnabled) {
-                Log.d(TAG, "Discovery changed.");
+//                Log.d(TAG, "Discovery changed.");
             }
 
             @Override
             protected void thisDeviceChanged(WifiP2pDevice device) {
-                thisDevice = new Device(
-                        device.deviceName,
-                        device.deviceAddress,
-                        wifiManager.getConnectionInfo().getIpAddress(),0);
+                thisDevice = new WifiP2pDevice(device);
             }
         };
         application.getApplicationContext().registerReceiver(receiver, intentFilter);
-        registrar = new HostRegistrar(this, registeredClients, handler);
+        registrar = new HostRegistrar(this, handler, new HandshakeListener() {
+            @Override
+            public void onHandshake(WifiP2pDeviceInfo info) {
+                clientsInfo.add(info);
+            }
+        });
 
         record.put(SERVICE_NAME_TAG, service);
         info = WifiP2pDnsSdServiceInfo.newInstance(instance, service.concat("._tcp"), record);
     }
 
-    public void startService(final WifiP2pManager.ActionListener listener) {
+    public void send(WifiP2pDevice device, Data data) {
+        for(WifiP2pDevice client : clients) {
+            if(client.equals(device)) {
+                for(WifiP2pDeviceInfo info : clientsInfo) {
+                    if(info.getMacAddress().equals(client.deviceAddress)) {
+                        //TODO send data
+                    }
+                }
+            }
+        }
+    }
+
+    public void startService(final DataCallback dataCallback, final WifiP2pManager.ActionListener listener) {
         manager.clearLocalServices(channel, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
                 Log.d(TAG, "Succeeded to clear local service.");
-                registrar.stop();
+                dataReceiver.stop();
 
-                registrar.start(new ServerSocketInitializationCompleteListener() {
+                dataReceiver.start(dataCallback, new ServerSocketInitializationCompleteListener() {
                     @Override
-                    public void onSuccess(ServerSocket socket) {
-                        Log.d(TAG, "Succeeded to start registrar.");
+                    public void onSuccess(ServerSocket serverSocket) {
+                        Log.d(TAG, "Succeeded to start data receiver.");
+                        thisDeviceInfo.setPort(serverSocket.getLocalPort());
+                        registrar.stop();
 
-                        // Reinitialize the service information to reflect the new registration dataPort
-                        record.put(PORT_TAG, Integer.toString(socket.getLocalPort()));
-                        info = WifiP2pDnsSdServiceInfo.newInstance(instance, service.concat("._tcp"), record);
-
-                        manager.addLocalService(channel, info, new WifiP2pManager.ActionListener() {
+                        registrar.start(new ServerSocketInitializationCompleteListener() {
                             @Override
-                            public void onSuccess() {
-                                Log.d(TAG, "Succeeded to add local service.");
-                                serviceBroadcastingThread = new Thread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        while (!Thread.currentThread().isInterrupted()) {
-                                            try {
-                                                Thread.sleep(SERVICE_BROADCASTING_INTERVAL);
-                                                manager.discoverPeers(channel, new WifiP2pManager.ActionListener() {
-                                                    @Override
-                                                    public void onSuccess() {
-                                                    }
+                            public void onSuccess(ServerSocket serverSocket) {
+                                Log.d(TAG, "Succeeded to start registrar.");
 
-                                                    @Override
-                                                    public void onFailure(int error) {
+                                // Reinitialize the service information to reflect the new registration dataPort
+                                record.put(PORT_TAG, Integer.toString(serverSocket.getLocalPort()));
+                                info = WifiP2pDnsSdServiceInfo.newInstance(instance, service.concat("._tcp"), record);
+
+                                manager.addLocalService(channel, info, new WifiP2pManager.ActionListener() {
+                                    @Override
+                                    public void onSuccess() {
+                                        Log.d(TAG, "Succeeded to add local service.");
+                                        serviceBroadcastingThread = new Thread(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                while (!Thread.currentThread().isInterrupted()) {
+                                                    try {
+                                                        Thread.sleep(SERVICE_BROADCASTING_INTERVAL);
+                                                        manager.discoverPeers(channel, new WifiP2pManager.ActionListener() {
+                                                            @Override
+                                                            public void onSuccess() {
+                                                            }
+
+                                                            @Override
+                                                            public void onFailure(int error) {
+                                                            }
+                                                        });
+                                                    } catch (InterruptedException e) {
+                                                        Thread.currentThread().interrupt();
                                                     }
-                                                });
-                                            } catch (InterruptedException e) {
-                                                Thread.currentThread().interrupt();
+                                                }
                                             }
-                                        }
+                                        });
+                                        serviceBroadcastingThread.start();
+                                        listener.onSuccess();
+                                    }
+
+                                    @Override
+                                    public void onFailure(int reason) {
+                                        Log.d(TAG, "Failed to add local service.");
+                                        listener.onFailure(reason);
                                     }
                                 });
-                                serviceBroadcastingThread.start();
-                                listener.onSuccess();
                             }
 
                             @Override
-                            public void onFailure(int reason) {
-                                Log.d(TAG, "Failed to add local service.");
-                                listener.onFailure(reason);
+                            public void onFailure() {
+                                Log.d(TAG, "Failed to start registrar.");
+                                listener.onFailure(0);
                             }
                         });
                     }
 
                     @Override
                     public void onFailure() {
-                        Log.d(TAG, "Failed to start registrar.");
+                        Log.d(TAG, "Failed to start data receiver.");
                         listener.onFailure(0);
                     }
                 });
@@ -174,10 +225,10 @@ public class Host extends Direct {
      * Creates and returns a deep copy of the list of client {@link WifiP2pDevice}s.
      * @return A deep copy of the list of client {@link WifiP2pDevice}s.
      */
-    public List<Device> getRegisteredClients() {
-        List<Device> deepClientsClone = new ArrayList<>();
-        for(Device device : registeredClients) {
-            deepClientsClone.add(new Device(device));
+    public List<WifiP2pDevice> getRegisteredClients() {
+        List<WifiP2pDevice> deepClientsClone = new ArrayList<>();
+        for(WifiP2pDevice device : clients) {
+            deepClientsClone.add(new WifiP2pDevice(device));
         }
         return deepClientsClone;
     }
