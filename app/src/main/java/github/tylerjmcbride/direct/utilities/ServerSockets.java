@@ -1,4 +1,4 @@
-package github.tylerjmcbride.direct.registration;
+package github.tylerjmcbride.direct.utilities;
 
 import android.util.Log;
 

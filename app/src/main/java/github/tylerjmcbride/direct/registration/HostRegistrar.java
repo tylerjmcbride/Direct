@@ -4,11 +4,9 @@ import android.net.wifi.p2p.WifiP2pDevice;
 import android.os.Handler;
 import android.util.Log;
 
-import com.bluelinelabs.logansquare.LoganSquare;
-
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.Executors;
@@ -17,8 +15,9 @@ import github.tylerjmcbride.direct.Direct;
 import github.tylerjmcbride.direct.listeners.HandshakeListener;
 import github.tylerjmcbride.direct.listeners.ServerSocketInitializationCompleteListener;
 import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
-import github.tylerjmcbride.direct.model.data.HandshakeData;
-import github.tylerjmcbride.direct.registration.runnables.ServerSocketRunnable;
+import github.tylerjmcbride.direct.model.data.Handshake;
+import github.tylerjmcbride.direct.utilities.runnables.ServerSocketRunnable;
+import github.tylerjmcbride.direct.utilities.ServerSockets;
 
 /**
  * A {@link HostRegistrar} is in charge of handling the registration of client {@link WifiP2pDevice}s.
@@ -55,28 +54,29 @@ public class HostRegistrar extends Registrar {
                             @Override
                             public void run() {
                                 try {
-                                    DataInputStream from = new DataInputStream(clientSocket.getInputStream());
-                                    DataOutputStream to = new DataOutputStream(clientSocket.getOutputStream());
+                                    // Retrieve details about the client device
+                                    ObjectInputStream inputStream = new ObjectInputStream(clientSocket.getInputStream());
+                                    Handshake handshake = (Handshake) inputStream.readObject();
 
-                                    // Client sends details about their device
-                                    final HandshakeData data = LoganSquare.parse(from.readUTF(), HandshakeData.class);
+                                    // Notify framework
+                                    final WifiP2pDeviceInfo clientInfo = new WifiP2pDeviceInfo(handshake.getMacAddress(), clientSocket.getInetAddress(), handshake.getPort());
                                     handler.post(new Runnable() {
                                         @Override
                                         public void run() {
-                                            handshakeListener.onHandshake(new WifiP2pDeviceInfo(data.getMacAddress(), clientSocket.getInetAddress(), data.getPort()));
+                                            handshakeListener.onHandshake(clientInfo);
                                         }
                                     });
 
-                                    // Reply by sending details about the host device
+                                    // Send details about the host device
                                     WifiP2pDeviceInfo info = direct.getThisDeviceInfo();
-                                    to.writeUTF(LoganSquare.serialize(new HandshakeData(info.getMacAddress(), info.getPort())));
-                                    to.flush();
+                                    ObjectOutputStream outputStream = new ObjectOutputStream(clientSocket.getOutputStream());
+                                    outputStream.writeObject(new Handshake(info.getMacAddress(), info.getPort()));
 
-                                    from.close();
-                                    to.close();
-
-                                } catch (Exception ex) {
+                                    outputStream.close();
+                                    inputStream.close();
+                                } catch (ClassNotFoundException | ClassCastException | IOException ex) {
                                     Log.e(Direct.TAG, "Failed to register client.");
+                                    Log.e(Direct.TAG, ex.getMessage());
                                 } finally {
                                     try {
                                         clientSocket.close();

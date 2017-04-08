@@ -3,11 +3,9 @@ package github.tylerjmcbride.direct.registration;
 import android.os.Handler;
 import android.util.Log;
 
-import com.bluelinelabs.logansquare.LoganSquare;
-
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
@@ -17,8 +15,8 @@ import github.tylerjmcbride.direct.Direct;
 import github.tylerjmcbride.direct.listeners.RegisteredWithServerListener;
 import github.tylerjmcbride.direct.listeners.SocketInitializationCompleteListener;
 import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
-import github.tylerjmcbride.direct.model.data.HandshakeData;
-import github.tylerjmcbride.direct.registration.runnables.SocketConnectionRunnable;
+import github.tylerjmcbride.direct.model.data.Handshake;
+import github.tylerjmcbride.direct.utilities.runnables.SocketConnectionRunnable;
 
 public class ClientRegistrar extends Registrar {
 
@@ -33,28 +31,29 @@ public class ClientRegistrar extends Registrar {
             @Override
             public void onSuccess(final Socket hostSocket) {
                 try {
-                    DataOutputStream to = new DataOutputStream(hostSocket.getOutputStream());
-                    DataInputStream from = new DataInputStream(hostSocket.getInputStream());
-
                     // Send details about the client device
                     WifiP2pDeviceInfo info = direct.getThisDeviceInfo();
-                    to.writeUTF(LoganSquare.serialize(new HandshakeData(info.getMacAddress(), info.getPort())));
-                    to.flush();
+                    ObjectOutputStream outputStream = new ObjectOutputStream(hostSocket.getOutputStream());
+                    outputStream.writeObject(new Handshake(info.getMacAddress(), info.getPort()));
 
                     // Retrieve details about the host device
-                    String string = from.readUTF();
-                    final HandshakeData data = LoganSquare.parse(string, HandshakeData.class);
+                    ObjectInputStream  inputStream = new ObjectInputStream(hostSocket.getInputStream());
+                    Handshake handshake = (Handshake) inputStream.readObject();
+
+                    // Notify framework
+                    final WifiP2pDeviceInfo hostInfo = new WifiP2pDeviceInfo(handshake.getMacAddress(), hostSocket.getInetAddress(), handshake.getPort());
                     handler.post(new Runnable() {
                         @Override
                         public void run() {
-                            registeredWithServerListener.onSuccess(new WifiP2pDeviceInfo(data.getMacAddress(), hostSocket.getInetAddress(), data.getPort()));
+                            registeredWithServerListener.onSuccess(hostInfo);
                         }
                     });
 
-                    from.close();
-                    to.close();
-                } catch (IOException ex) {
+                    outputStream.close();
+                    inputStream.close();
+                } catch (ClassNotFoundException | ClassCastException | IOException ex) {
                     Log.e(Direct.TAG, "Failed to register with server.");
+                    Log.e(Direct.TAG, ex.getMessage());
                     handler.post(new Runnable() {
                         @Override
                         public void run() {

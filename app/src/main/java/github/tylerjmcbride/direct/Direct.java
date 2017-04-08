@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.IntentFilter;
 import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pDevice;
-import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.WifiP2pManager.Channel;
@@ -18,8 +17,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
-import github.tylerjmcbride.direct.registration.DataReceiver;
-import github.tylerjmcbride.direct.registration.DataSender;
+import github.tylerjmcbride.direct.transceivers.ObjectReceiver;
+import github.tylerjmcbride.direct.transceivers.ObjectTransmitter;
 
 public abstract class Direct {
 
@@ -34,13 +33,12 @@ public abstract class Direct {
     protected IntentFilter intentFilter;
     protected Handler handler;
 
-    protected WifiP2pDeviceList nearbyPeers;
     protected int serverPort;
     protected String service;
     protected String instance;
 
-    protected DataSender dataSender;
-    protected DataReceiver dataReceiver;
+    protected ObjectTransmitter dataSender;
+    protected ObjectReceiver dataReceiver;
 
     protected WifiP2pDevice thisDevice;
     protected WifiP2pDeviceInfo thisDeviceInfo;
@@ -68,8 +66,8 @@ public abstract class Direct {
         final Looper looper = context.getMainLooper();
 
         this.handler = new Handler(looper);
-        this.dataReceiver = new DataReceiver(handler);
-        this.dataSender = new DataSender(handler);
+        this.dataReceiver = new ObjectReceiver(handler);
+        this.dataSender = new ObjectTransmitter(handler);
         this.wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
         this.manager = (WifiP2pManager) context.getSystemService(Context.WIFI_P2P_SERVICE);
         this.channel = manager.initialize(context, looper, new WifiP2pManager.ChannelListener() {
@@ -98,13 +96,45 @@ public abstract class Direct {
         return new WifiP2pDeviceInfo(thisDeviceInfo);
     }
 
+    protected void removeGroup(final WifiP2pManager.ActionListener listener) {
+        manager.requestGroupInfo(channel, new WifiP2pManager.GroupInfoListener() {
+            @Override
+            public void onGroupInfoAvailable(final WifiP2pGroup group) {
+                manager.removeGroup(channel, new WifiP2pManager.ActionListener() {
+                    @Override
+                    public void onSuccess() {
+                        Log.d(TAG, "Succeeded to remove group.");
+                        deletePersistentGroup(group, new WifiP2pManager.ActionListener() {
+                            @Override
+                            public void onSuccess() {
+                                Log.d(TAG, "Succeeded to remove persistent group.");
+                                listener.onSuccess();
+                            }
+
+                            @Override
+                            public void onFailure(int reason) {
+                                Log.d(TAG, "Failed to remove persistent group.");
+                                listener.onFailure(reason);
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onFailure(int reason) {
+                        Log.d(TAG, "Failed to retrieve group. Reason: " + reason + ".");
+                        listener.onFailure(reason);
+                    }
+                });
+            }
+        });
+    }
+
     /**
      * @see <a href="http://stackoverflow.com/questions/23653707/forgetting-old-wifi-direct-connections"></a>
      * @param wifiP2pGroup
      */
     protected void deletePersistentGroup(WifiP2pGroup wifiP2pGroup, final WifiP2pManager.ActionListener listener) {
         try {
-
             Method getNetworkId = WifiP2pGroup.class.getMethod("getNetworkId");
             Integer networkId = (Integer) getNetworkId.invoke(wifiP2pGroup);
             Method deletePersistentGroup = WifiP2pManager.class.getMethod("deletePersistentGroup",

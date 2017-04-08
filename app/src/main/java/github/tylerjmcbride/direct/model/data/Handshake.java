@@ -1,29 +1,22 @@
 package github.tylerjmcbride.direct.model.data;
 
-import com.bluelinelabs.logansquare.annotation.JsonField;
-import com.bluelinelabs.logansquare.annotation.JsonObject;
+import java.io.Serializable;
 
-@JsonObject(fieldDetectionPolicy = JsonObject.FieldDetectionPolicy.NONPRIVATE_FIELDS_AND_ACCESSORS)
-public class HandshakeData extends Data {
+public class Handshake implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     /**
      * The device MAC address uniquely identifies a Wi-Fi p2p device
      */
-    @JsonField
-
     private String macAddress;
 
     /**
      * The device port which listens for data
      */
-    @JsonField
     private int port;
 
-    public HandshakeData() {
-
-    }
-
-    public HandshakeData(String macAddress, int port) {
+    public Handshake(String macAddress, int port) {
         this.macAddress = macAddress;
         this.port = port;
     }

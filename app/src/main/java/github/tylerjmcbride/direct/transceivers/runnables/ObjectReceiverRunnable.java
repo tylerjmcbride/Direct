@@ -1,30 +1,26 @@
-package github.tylerjmcbride.direct.registration.runnables;
+package github.tylerjmcbride.direct.transceivers.runnables;
 
 import android.os.Handler;
 import android.util.Log;
 
-import org.apache.commons.io.Charsets;
-import org.apache.commons.io.IOUtils;
-
-import java.io.BufferedInputStream;
+import java.io.ObjectInputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.Executors;
 
 import github.tylerjmcbride.direct.Direct;
-import github.tylerjmcbride.direct.listeners.DataCallback;
-import github.tylerjmcbride.direct.model.data.Data;
-import github.tylerjmcbride.direct.utilities.DataParser;
+import github.tylerjmcbride.direct.listeners.ObjectCallback;
+import github.tylerjmcbride.direct.utilities.runnables.ServerSocketRunnable;
 
-public class DataHandlerRunnable extends ServerSocketRunnable {
+public class ObjectReceiverRunnable extends ServerSocketRunnable {
 
     private Handler handler;
-    private DataCallback dataCallback;
+    private ObjectCallback objectCallback;
 
-    public DataHandlerRunnable(ServerSocket registrationSocket, Handler handler, DataCallback dataCallback) {
+    public ObjectReceiverRunnable(ServerSocket registrationSocket, Handler handler, ObjectCallback dataCallback) {
         super(registrationSocket, Executors.newFixedThreadPool(5));
         this.handler = handler;
-        this.dataCallback = dataCallback;
+        this.objectCallback = dataCallback;
     }
 
     @Override
@@ -33,14 +29,15 @@ public class DataHandlerRunnable extends ServerSocketRunnable {
             @Override
             public void run() {
                 try {
-                    BufferedInputStream clientStream = new BufferedInputStream(clientSocket.getInputStream());
-                    final Data data = DataParser.parse(IOUtils.toString(clientStream, Charsets.UTF_8));
+                    ObjectInputStream inputStream = new ObjectInputStream(clientSocket.getInputStream());
+                    final Object object = inputStream.readObject();
+                    inputStream.close();
 
                     handler.post(new Runnable() {
                         @Override
                         public void run() {
                             Log.d(Direct.TAG, "Succeeded to receive data.");
-                            dataCallback.onReceived(data);
+                            objectCallback.onReceived(object);
                         }
                     });
                 } catch (Exception ex) {

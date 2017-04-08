@@ -54,5 +54,10 @@
             android:layout_height="wrap_content"
             android:layout_width="wrap_content"
             android:text="client send" />
+        <Button
+            android:id="@+id/hostsend"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content"
+            android:text="host send" />
     </LinearLayout>
 </RelativeLayout>

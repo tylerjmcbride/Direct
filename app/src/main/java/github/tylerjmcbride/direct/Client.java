@@ -4,13 +4,13 @@ import android.app.Application;
 import android.net.NetworkInfo;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
-import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceRequest;
 import android.util.Log;
 
+import java.io.Serializable;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -19,12 +19,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import github.tylerjmcbride.direct.listeners.DataCallback;
+import github.tylerjmcbride.direct.listeners.ObjectCallback;
 import github.tylerjmcbride.direct.listeners.RegisteredWithServerListener;
 import github.tylerjmcbride.direct.listeners.ServerSocketInitializationCompleteListener;
 import github.tylerjmcbride.direct.listeners.SocketInitializationCompleteListener;
 import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
-import github.tylerjmcbride.direct.model.data.Data;
 import github.tylerjmcbride.direct.receivers.DirectBroadcastReceiver;
 import github.tylerjmcbride.direct.registration.ClientRegistrar;
 
@@ -36,7 +35,7 @@ public class Client extends Direct {
     private WifiP2pDevice hostDevice = null;
     private WifiP2pDeviceInfo hostDeviceInfo = null;
     private int hostPort;
-    private DataCallback dataCallback;
+    private ObjectCallback dataCallback;
 
     /**
      * Creates a Wi-Fi Direct Client.
@@ -84,37 +83,19 @@ public class Client extends Direct {
             }
 
             @Override
-            protected void peersChanged() {
-                manager.requestPeers(channel, new WifiP2pManager.PeerListListener() {
-                    @Override
-                    public void onPeersAvailable(WifiP2pDeviceList peers) {
-                        nearbyPeers = peers;
-                    }
-                });
-            }
-
-            @Override
-            protected void stateChanged(boolean wifiEnabled) {
-//                Log.e(TAG, "memes");
-            }
-
-            @Override
-            protected void discoveryChanged(boolean discoveryEnabled) {
-//                Log.d(TAG, "Discovery changed.");
-            }
-
-            @Override
-            protected void thisDeviceChanged(WifiP2pDevice device) {
-                thisDevice = new WifiP2pDevice(device);
+            protected void thisDeviceChanged(WifiP2pDevice thisDevice) {
+                thisDevice = new WifiP2pDevice(thisDevice);
+                thisDeviceInfo.setMacAddress(thisDevice.deviceAddress);
             }
         };
         application.getApplicationContext().registerReceiver(receiver, intentFilter);
         registrar = new ClientRegistrar(this, handler);
+        setDnsSdResponseListeners();
     }
 
-    public void sendData(Data data) {
+    public void send(Serializable object) {
         if(hostDevice != null && hostDeviceInfo != null) {
-            dataSender.send(data, new InetSocketAddress(hostDeviceInfo.getIpAddress(), hostDeviceInfo.getPort()), new SocketInitializationCompleteListener() {
+            dataSender.send(object, new InetSocketAddress(hostDeviceInfo.getIpAddress(), hostDeviceInfo.getPort()), new SocketInitializationCompleteListener() {
                 @Override
                 public void onSuccess(Socket socket) {
                     // hurray
@@ -134,7 +115,6 @@ public class Client extends Direct {
      */
     public void startDiscovery(final WifiP2pManager.ActionListener listener) {
         if(serviceRequest == null) {
-            setDnsSdResponseListeners();
             serviceRequest = WifiP2pDnsSdServiceRequest.newInstance();
 
             manager.removeServiceRequest(channel, serviceRequest, new WifiP2pManager.ActionListener() {
@@ -190,12 +170,24 @@ public class Client extends Direct {
                     Log.d(TAG, "Succeeded to remove service request.");
                     serviceRequest = null;
                     nearbyHostDevices.clear();
-                    listener.onSuccess();
+                    manager.stopPeerDiscovery(channel, new WifiP2pManager.ActionListener() {
+                        @Override
+                        public void onSuccess() {
+                            Log.d(TAG, "Succeeded to stop peer discovery.");
+                            listener.onSuccess();
+                        }
+
+                        @Override
+                        public void onFailure(int reason) {
+                            Log.d(TAG, "Failed to stop peer discovery.");
+                            listener.onSuccess();
+                        }
+                    });
                 }
 
                 @Override
                 public void onFailure(int reason) {
-                    Log.d(TAG, "Succeeded to remove service request.");
+                    Log.d(TAG, "Failed to remove service request.");
                     listener.onSuccess();
                 }
             });
@@ -208,8 +200,8 @@ public class Client extends Direct {
      * @param host The specified hostDevice.
      * @param listener The listener.
      */
-    public void connect(final WifiP2pDevice host, DataCallback dataCallback, final WifiP2pManager.ActionListener listener) {
-        if(nearbyHostDevices.containsKey(host)) {
+    public void connect(final WifiP2pDevice host, ObjectCallback dataCallback, final WifiP2pManager.ActionListener listener) {
+        if(hostIsNearby(host)) {
             hostPort = getHostRegistrationPort(host);
 
             if (host != null) {
@@ -231,7 +223,7 @@ public class Client extends Direct {
                 });
             }
         } else {
-            Log.d(TAG, "Failed to connect to hostDevice device.");
+            Log.d(TAG, "Failed to connect to device.");
             listener.onFailure(0);
         }
     }
@@ -241,33 +233,16 @@ public class Client extends Direct {
      * @param listener The listener.
      */
     public void disconnect(final WifiP2pManager.ActionListener listener) {
-        manager.requestGroupInfo(channel, new WifiP2pManager.GroupInfoListener() {
+        removeGroup(new WifiP2pManager.ActionListener() {
             @Override
-            public void onGroupInfoAvailable(final WifiP2pGroup group) {
-                manager.removeGroup(channel, new WifiP2pManager.ActionListener() {
-                    @Override
-                    public void onSuccess() {
-                        Log.d(TAG, "Succeeded to remove group.");
-                        dataCallback = null;
-                        deletePersistentGroup(group, new WifiP2pManager.ActionListener() {
-                            @Override
-                            public void onSuccess() {
-                                listener.onSuccess();
-                            }
+            public void onSuccess() {
+                dataCallback = null;
+                listener.onSuccess();
+            }
 
-                            @Override
-                            public void onFailure(int reason) {
-                                listener.onSuccess();
-                            }
-                        });
-                    }
-
-                    @Override
-                    public void onFailure(int reason) {
-                        Log.d(TAG, "Failed to retrieve group. Reason: " + reason + ".");
-                        listener.onFailure(reason);
-                    }
-                });
+            @Override
+            public void onFailure(int reason) {
+                listener.onFailure(reason);
             }
         });
     }
@@ -311,6 +286,21 @@ public class Client extends Direct {
      */
     public WifiP2pDevice getHostDevice() {
         return new WifiP2pDevice(hostDevice);
+    }
+
+    /**
+     * Unfortunately, {@link WifiP2pDevice} does not implement {@link Object#hashCode()}; therefore,
+     * it is not possible to use {@link Map#containsKey(Object)}.
+     * @param host The hostDevice {@link WifiP2pDevice}.
+     * @return Whether the given hostDevice {@link WifiP2pDevice} is nearby.
+     */
+    private boolean hostIsNearby(WifiP2pDevice host) {
+        for(WifiP2pDevice device : nearbyHostDevices.keySet()) {
+            if(device.equals(host)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

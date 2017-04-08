@@ -48,13 +48,21 @@ public abstract class DirectBroadcastReceiver extends BroadcastReceiver {
         }
     }
 
-    protected abstract void connectionChanged(WifiP2pInfo p2pInfo, NetworkInfo info, WifiP2pGroup p2pGroup);
+    protected void connectionChanged(WifiP2pInfo p2pInfo, NetworkInfo info, WifiP2pGroup p2pGroup) {
 
-    protected abstract void peersChanged();
+    }
 
-    protected abstract void stateChanged(boolean wifiEnabled);
+    protected void peersChanged() {
 
-    protected abstract void discoveryChanged(boolean discoveryEnabled);
+    }
 
-    protected abstract void thisDeviceChanged(WifiP2pDevice device);
+    protected void stateChanged(boolean wifiEnabled) {
+
+    }
+
+    protected void discoveryChanged(boolean discoveryEnabled) {
+
+    }
+
+    protected abstract void thisDeviceChanged(WifiP2pDevice thisDevice);
 }

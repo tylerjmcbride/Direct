@@ -1,4 +1,4 @@
-package github.tylerjmcbride.direct.registration.runnables;
+package github.tylerjmcbride.direct.utilities.runnables;
 
 import android.util.Log;
 
@@ -32,7 +32,7 @@ public abstract class ServerSocketRunnable implements Runnable {
             // Current thread has been interrupted, clean up registration socket
             serverSocket.close();
         } catch (IOException e) { // Really a SocketException
-            Log.d(Direct.TAG, String.format("Succeeded to close registration socket on dataPort %d.", serverSocket.getLocalPort()));
+            Log.d(Direct.TAG, String.format("Succeeded to close socket on %d.", serverSocket.getLocalPort()));
         }
 
         // Clean up executor service
