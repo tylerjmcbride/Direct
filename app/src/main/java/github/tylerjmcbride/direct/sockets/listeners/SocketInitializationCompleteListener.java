@@ -1,5 +1,4 @@
-package github.tylerjmcbride.direct.listeners;
-
+package github.tylerjmcbride.direct.sockets.listeners;
 
 import java.net.Socket;
 

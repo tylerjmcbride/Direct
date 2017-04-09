@@ -12,13 +12,13 @@ import java.net.Socket;
 
 import github.tylerjmcbride.direct.Direct;
 import github.tylerjmcbride.direct.Host;
-import github.tylerjmcbride.direct.listeners.HandshakeListener;
-import github.tylerjmcbride.direct.listeners.ServerSocketInitializationCompleteListener;
-import github.tylerjmcbride.direct.model.Adieu;
-import github.tylerjmcbride.direct.model.Handshake;
+import github.tylerjmcbride.direct.registration.listeners.HandshakeListener;
 import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
-import github.tylerjmcbride.direct.utilities.ServerSockets;
-import github.tylerjmcbride.direct.utilities.runnables.ServerSocketRunnable;
+import github.tylerjmcbride.direct.registration.model.Adieu;
+import github.tylerjmcbride.direct.registration.model.Handshake;
+import github.tylerjmcbride.direct.sockets.ServerSockets;
+import github.tylerjmcbride.direct.sockets.listeners.ServerSocketInitializationCompleteListener;
+import github.tylerjmcbride.direct.sockets.runnables.ServerSocketRunnable;
 
 /**
  * A {@link HostRegistrar} is in charge of handling the registration of client {@link WifiP2pDevice}s.
@@ -112,7 +112,7 @@ public class HostRegistrar {
 
     /**
      * Stops the registration process. Will invoke {@link ServerSocket#close()} which will effectively
-     * kill the {@link Thread} running the {@link github.tylerjmcbride.direct.utilities.runnables.ServerSocketRunnable}.
+     * kill the {@link Thread} running the {@link github.tylerjmcbride.direct.sockets.runnables.ServerSocketRunnable}.
      */
     public void stop() {
         if(serverSocket != null) {

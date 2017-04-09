@@ -13,9 +13,9 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
-import github.tylerjmcbride.direct.listeners.ObjectCallback;
-import github.tylerjmcbride.direct.listeners.ResultCallback;
-import github.tylerjmcbride.direct.model.Handshake;
+import github.tylerjmcbride.direct.callbacks.ResultCallback;
+import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
+import github.tylerjmcbride.direct.registration.model.Handshake;
 
 public class MainActivity extends AppCompatActivity {
 

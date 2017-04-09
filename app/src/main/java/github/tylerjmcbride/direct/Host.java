@@ -19,14 +19,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import github.tylerjmcbride.direct.listeners.HandshakeListener;
-import github.tylerjmcbride.direct.listeners.ObjectCallback;
-import github.tylerjmcbride.direct.listeners.ResultCallback;
-import github.tylerjmcbride.direct.listeners.ServerSocketInitializationCompleteListener;
-import github.tylerjmcbride.direct.listeners.SocketInitializationCompleteListener;
+import github.tylerjmcbride.direct.callbacks.ResultCallback;
+import github.tylerjmcbride.direct.registration.listeners.HandshakeListener;
+import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
 import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
-import github.tylerjmcbride.direct.transceivers.DirectBroadcastReceiver;
 import github.tylerjmcbride.direct.registration.HostRegistrar;
+import github.tylerjmcbride.direct.sockets.listeners.ServerSocketInitializationCompleteListener;
+import github.tylerjmcbride.direct.sockets.listeners.SocketInitializationCompleteListener;
+import github.tylerjmcbride.direct.transceivers.DirectBroadcastReceiver;
 
 public class Host extends Direct {
 

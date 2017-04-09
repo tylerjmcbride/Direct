@@ -1,4 +1,4 @@
-package github.tylerjmcbride.direct.utilities.runnables;
+package github.tylerjmcbride.direct.sockets.runnables;
 
 import android.util.Log;
 

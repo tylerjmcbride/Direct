@@ -1,4 +1,4 @@
-package github.tylerjmcbride.direct.utilities;
+package github.tylerjmcbride.direct.sockets;
 
 import android.util.Log;
 
@@ -6,8 +6,8 @@ import java.io.IOException;
 import java.net.ServerSocket;
 
 import github.tylerjmcbride.direct.Direct;
-import github.tylerjmcbride.direct.listeners.ResultCallback;
-import github.tylerjmcbride.direct.listeners.ServerSocketInitializationCompleteListener;
+import github.tylerjmcbride.direct.callbacks.ResultCallback;
+import github.tylerjmcbride.direct.sockets.listeners.ServerSocketInitializationCompleteListener;
 
 /**
  * Static class for server socket initialization.

@@ -1,4 +1,4 @@
-package github.tylerjmcbride.direct.listeners;
+package github.tylerjmcbride.direct.callbacks;
 
 /**
  * Interface for callback invocation on an action.

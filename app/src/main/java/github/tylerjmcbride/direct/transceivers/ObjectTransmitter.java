@@ -13,8 +13,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import github.tylerjmcbride.direct.Direct;
-import github.tylerjmcbride.direct.listeners.SocketInitializationCompleteListener;
-import github.tylerjmcbride.direct.utilities.runnables.SocketConnectionRunnable;
+import github.tylerjmcbride.direct.sockets.listeners.SocketInitializationCompleteListener;
+import github.tylerjmcbride.direct.sockets.runnables.SocketConnectionRunnable;
 
 public class ObjectTransmitter {
 

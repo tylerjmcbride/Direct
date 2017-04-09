@@ -7,9 +7,9 @@ import java.io.IOException;
 import java.net.ServerSocket;
 
 import github.tylerjmcbride.direct.Direct;
-import github.tylerjmcbride.direct.listeners.ObjectCallback;
-import github.tylerjmcbride.direct.listeners.ServerSocketInitializationCompleteListener;
-import github.tylerjmcbride.direct.utilities.ServerSockets;
+import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
+import github.tylerjmcbride.direct.sockets.ServerSockets;
+import github.tylerjmcbride.direct.sockets.listeners.ServerSocketInitializationCompleteListener;
 import github.tylerjmcbride.direct.transceivers.runnables.ObjectReceiverRunnable;
 
 public class ObjectReceiver {
@@ -50,7 +50,7 @@ public class ObjectReceiver {
 
     /**
      * Stops the object receiver. Will invoke {@link ServerSocket#close()} which will effectively
-     * kill the {@link Thread} running the {@link github.tylerjmcbride.direct.utilities.runnables.ServerSocketRunnable}.
+     * kill the {@link Thread} running the {@link github.tylerjmcbride.direct.sockets.runnables.ServerSocketRunnable}.
      */
     public void stop() {
         if(serverSocket != null) {

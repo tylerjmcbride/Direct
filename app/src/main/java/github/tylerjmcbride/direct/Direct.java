@@ -16,7 +16,7 @@ import android.util.Log;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-import github.tylerjmcbride.direct.listeners.ResultCallback;
+import github.tylerjmcbride.direct.callbacks.ResultCallback;
 import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
 import github.tylerjmcbride.direct.transceivers.ObjectReceiver;
 import github.tylerjmcbride.direct.transceivers.ObjectTransmitter;

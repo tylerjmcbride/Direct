@@ -19,15 +19,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import github.tylerjmcbride.direct.listeners.ObjectCallback;
-import github.tylerjmcbride.direct.listeners.RegisteredWithServerListener;
-import github.tylerjmcbride.direct.listeners.ResultCallback;
-import github.tylerjmcbride.direct.listeners.ServerSocketInitializationCompleteListener;
-import github.tylerjmcbride.direct.listeners.SocketInitializationCompleteListener;
-import github.tylerjmcbride.direct.listeners.UnregisteredWithServerListener;
+import github.tylerjmcbride.direct.callbacks.ResultCallback;
+import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
+import github.tylerjmcbride.direct.registration.listeners.RegisteredWithServerListener;
+import github.tylerjmcbride.direct.registration.listeners.UnregisteredWithServerListener;
 import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
-import github.tylerjmcbride.direct.transceivers.DirectBroadcastReceiver;
 import github.tylerjmcbride.direct.registration.ClientRegistrar;
+import github.tylerjmcbride.direct.sockets.listeners.ServerSocketInitializationCompleteListener;
+import github.tylerjmcbride.direct.sockets.listeners.SocketInitializationCompleteListener;
+import github.tylerjmcbride.direct.transceivers.DirectBroadcastReceiver;
 
 public class Client extends Direct {
 

@@ -9,8 +9,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 import github.tylerjmcbride.direct.Direct;
-import github.tylerjmcbride.direct.listeners.ObjectCallback;
-import github.tylerjmcbride.direct.utilities.runnables.ServerSocketRunnable;
+import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
+import github.tylerjmcbride.direct.sockets.runnables.ServerSocketRunnable;
 
 public class ObjectReceiverRunnable extends ServerSocketRunnable {
 

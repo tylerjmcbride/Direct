@@ -1,4 +1,4 @@
-package github.tylerjmcbride.direct.utilities.runnables;
+package github.tylerjmcbride.direct.sockets.runnables;
 
 import android.util.Log;
 
@@ -8,8 +8,8 @@ import java.net.Socket;
 import java.net.SocketTimeoutException;
 
 import github.tylerjmcbride.direct.Direct;
-import github.tylerjmcbride.direct.listeners.ResultCallback;
-import github.tylerjmcbride.direct.listeners.SocketInitializationCompleteListener;
+import github.tylerjmcbride.direct.callbacks.ResultCallback;
+import github.tylerjmcbride.direct.sockets.listeners.SocketInitializationCompleteListener;
 
 /**
  * To prevent {@link android.os.NetworkOnMainThreadException}, the initialization of the client

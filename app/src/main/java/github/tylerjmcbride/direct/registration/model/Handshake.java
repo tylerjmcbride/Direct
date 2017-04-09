@@ -1,4 +1,4 @@
-package github.tylerjmcbride.direct.model;
+package github.tylerjmcbride.direct.registration.model;
 
 import java.io.Serializable;
 
