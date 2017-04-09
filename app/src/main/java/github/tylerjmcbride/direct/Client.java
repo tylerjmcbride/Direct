@@ -119,7 +119,7 @@ public class Client extends Direct {
     }
 
     /**
-     * Starts the discovery of services.
+     * Initiate service discovery.
      * @param callback The callback.
      */
     public void startDiscovery(final ResultCallback callback) {
@@ -155,7 +155,7 @@ public class Client extends Direct {
     }
 
     /**
-     * Ends the discovery of services.
+     * Cease service discovery.
      * @param callback The callback.
      */
     public void stopDiscovery(final ResultCallback callback) {
@@ -216,7 +216,7 @@ public class Client extends Direct {
                 }
             });
         } else {
-            Log.d(TAG, "Failed to connect.");
+            Log.d(TAG, "Failed to connect, device is either null or out of range.");
             callback.onFailure();
         }
     }

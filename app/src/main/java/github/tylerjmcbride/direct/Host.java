@@ -96,17 +96,13 @@ public class Host extends Direct {
 
     /**
      * Sends the respective client the given serializable object.
-     * @param client The client to receive the object.
+     * @param clientDevice The client device to receive the object.
      * @param object The object to send to the respective client.
      * @param callback The callback to capture the result.
      */
-    public void send(WifiP2pDevice client, Serializable object, final ResultCallback callback) {
-        boolean successful = false;
-
+    public void send(WifiP2pDevice clientDevice, Serializable object, final ResultCallback callback) {
         for(WifiP2pDeviceInfo clientInfo : clients.keySet()) {
-            if(client != null && client.deviceAddress.equals(clientInfo.getMacAddress())) {
-                successful = true;
-
+            if(clientDevice != null && clientDevice.deviceAddress.equals(clientInfo.getMacAddress())) {
                 objectTransmitter.send(object, new InetSocketAddress(clientInfo.getIpAddress(), clientInfo.getPort()), new SocketInitializationCompleteListener() {
                     @Override
                     public void onSuccess(Socket socket) {
@@ -119,13 +115,13 @@ public class Host extends Direct {
                     }
                 });
 
-                break;
+                // No use in continuing to iterate
+                return;
             }
         }
 
-        if(!successful) {
-            callback.onFailure();
-        }
+        // We failed to find respective client device
+        callback.onFailure();
     }
 
     /**
