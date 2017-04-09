@@ -78,17 +78,18 @@ public class Client extends Direct {
                 } else {
                     // Unregister with the host
                     if(hostDevice != null && hostDeviceInfo != null && hostRegistrarPort != null) {
+                        final String hostMacAddress = hostDevice.deviceAddress;
                         final InetSocketAddress hostAddress = new InetSocketAddress(hostDeviceInfo.getIpAddress(), hostRegistrarPort);
 
                         registrar.unregister(hostAddress, new UnregisteredWithServerListener() {
                             @Override
                             public void onSuccess() {
-                                Log.d(TAG, String.format("Succeeded to unregister with %s.", hostDevice.deviceAddress));
+                                Log.d(TAG, String.format("Succeeded to unregister with %s.", hostMacAddress));
                             }
 
                             @Override
                             public void onFailure() {
-                                Log.d(TAG, String.format("Failed to unregister with %s.", hostDevice.deviceAddress));
+                                Log.d(TAG, String.format("Failed to unregister with %s.", hostMacAddress));
                             }
                         });
                     }
