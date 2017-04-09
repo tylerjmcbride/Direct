@@ -93,6 +93,11 @@ public abstract class Direct {
         return new WifiP2pDeviceInfo(thisDeviceInfo);
     }
 
+    /**
+     * This method will attempt to both remove the current {@link WifiP2pGroup} and forget it's
+     * persistence.
+     * @param listener The listener.
+     */
     protected void removeGroup(final WifiP2pManager.ActionListener listener) {
         manager.requestGroupInfo(channel, new WifiP2pManager.GroupInfoListener() {
             @Override
@@ -105,20 +110,19 @@ public abstract class Direct {
                             @Override
                             public void onSuccess() {
                                 Log.d(TAG, "Succeeded to remove persistent group.");
-                                listener.onSuccess();
                             }
 
                             @Override
                             public void onFailure(int reason) {
                                 Log.d(TAG, "Failed to remove persistent group.");
-                                listener.onFailure(reason);
                             }
                         });
+                        listener.onSuccess();
                     }
 
                     @Override
                     public void onFailure(int reason) {
-                        Log.d(TAG, "Failed to retrieve group. Reason: " + reason + ".");
+                        Log.d(TAG, "Failed to retrieve group.");
                         listener.onFailure(reason);
                     }
                 });
@@ -127,8 +131,9 @@ public abstract class Direct {
     }
 
     /**
+     * Through reflection, this method will attempt to forget the persistent group.
      * @see <a href="http://stackoverflow.com/questions/23653707/forgetting-old-wifi-direct-connections"></a>
-     * @param wifiP2pGroup
+     * @param wifiP2pGroup The respective {@link WifiP2pGroup}.
      */
     protected void deletePersistentGroup(WifiP2pGroup wifiP2pGroup, final WifiP2pManager.ActionListener listener) {
         try {

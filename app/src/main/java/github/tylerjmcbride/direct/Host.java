@@ -30,8 +30,6 @@ import github.tylerjmcbride.direct.registration.HostRegistrar;
 
 public class Host extends Direct {
 
-    private static final int SERVICE_BROADCASTING_INTERVAL = 1000;
-
     private HostRegistrar registrar;
     private WifiP2pDnsSdServiceInfo info;
     private Map<String, String> record = new HashMap<>();
@@ -44,9 +42,12 @@ public class Host extends Direct {
         receiver = new DirectBroadcastReceiver(manager, channel) {
             @Override
             protected void connectionChanged(WifiP2pInfo p2pInfo, NetworkInfo networkInfo, WifiP2pGroup p2pGroup) {
+                // No need to check {@link WifiP2pInfo#isGroupOwner} as this device is dedicated to hosting the service
                 if (p2pInfo.groupFormed && networkInfo.isConnected()) {
                     pruneDisconnectedClients();
                 } else {
+                    registrar.stop();
+                    objectReceiver.stop();
                     clients.clear();
                 }
             }
@@ -93,6 +94,12 @@ public class Host extends Direct {
         info = WifiP2pDnsSdServiceInfo.newInstance(instance, service.concat("._tcp"), record);
     }
 
+    /**
+     * Sends the respective client the given serializable object.
+     * @param client The client to receive the object.
+     * @param object The object to send to the respective client.
+     * @param callback The callback to capture the result.
+     */
     public void send(WifiP2pDevice client, Serializable object, final ResultCallback callback) {
         boolean successful = false;
 
@@ -111,6 +118,8 @@ public class Host extends Direct {
                         callback.onFailure();
                     }
                 });
+
+                break;
             }
         }
 
@@ -119,6 +128,12 @@ public class Host extends Direct {
         }
     }
 
+    /**
+     * Registers the local service for service discovery effectively starting the service; however,
+     * this is only a request to add said local service, the service will not officially be added
+     * until the framework is notified.
+     * @param listener The listener.
+     */
     public void startService(final ObjectCallback dataCallback, final WifiP2pManager.ActionListener listener) {
         manager.clearLocalServices(channel, new WifiP2pManager.ActionListener() {
             @Override
@@ -143,27 +158,7 @@ public class Host extends Direct {
                                     @Override
                                     public void onSuccess() {
                                         Log.d(TAG, "Succeeded to add local service.");
-                                        serviceBroadcastingThread = new Thread(new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                while (!Thread.currentThread().isInterrupted()) {
-                                                    try {
-                                                        Thread.sleep(SERVICE_BROADCASTING_INTERVAL);
-                                                        manager.discoverPeers(channel, new WifiP2pManager.ActionListener() {
-                                                            @Override
-                                                            public void onSuccess() {
-                                                            }
-
-                                                            @Override
-                                                            public void onFailure(int error) {
-                                                            }
-                                                        });
-                                                    } catch (InterruptedException e) {
-                                                        Thread.currentThread().interrupt();
-                                                    }
-                                                }
-                                            }
-                                        });
+                                        serviceBroadcastingThread = new Thread(new ServiceBroadcastingRunnable());
                                         serviceBroadcastingThread.start();
                                         listener.onSuccess();
                                     }
@@ -200,6 +195,12 @@ public class Host extends Direct {
         });
     }
 
+    /**
+     * Removes the registered local service effectively stopping the service; however, this is only
+     * a request to remove a local service, the service will not officially be removed until the
+     * framework is notified.
+     * @param listener The listener.
+     */
     public void stopService(final WifiP2pManager.ActionListener listener) {
         manager.removeLocalService(channel, info, new WifiP2pManager.ActionListener() {
             @Override
@@ -208,8 +209,6 @@ public class Host extends Direct {
                 if(serviceBroadcastingThread != null) {
                     serviceBroadcastingThread.interrupt();
                 }
-                registrar.stop();
-                objectReceiver.stop();
                 removeGroup(listener);
             }
 
@@ -233,6 +232,11 @@ public class Host extends Direct {
         return deepClientsClone;
     }
 
+    /**
+     * Will compare {@link Host#clients} to the {@link WifiP2pDeviceList} to unsure that all
+     * registered clients are within range. If any of the existing {@link Host#clients} are out of
+     * range they will be pruned.
+     */
     private void pruneDisconnectedClients() {
         manager.requestPeers(channel, new WifiP2pManager.PeerListListener() {
             @Override
@@ -245,7 +249,7 @@ public class Host extends Direct {
                             containsClient = true;
                         }
 
-                        // Prune disconnected client information
+                        // Prune disconnected client
                         if(containsClient == false) {
                             Log.d(TAG, clientInfo.getMacAddress() + " has disconnected.");
                             clients.remove(clientInfo);
@@ -254,5 +258,34 @@ public class Host extends Direct {
                 }
             }
         });
+    }
+
+    /**
+     * Will continually broadcast the service. The {@link ServiceBroadcastingRunnable} will run on
+     * its respective {@link Thread} until {@link Thread#interrupt()} is called.
+     */
+    class ServiceBroadcastingRunnable implements Runnable {
+
+        private static final int SERVICE_BROADCASTING_INTERVAL = 1000;
+
+        @Override
+        public void run() {
+            while (!Thread.currentThread().isInterrupted()) {
+                try {
+                    Thread.sleep(SERVICE_BROADCASTING_INTERVAL);
+                    manager.discoverPeers(channel, new WifiP2pManager.ActionListener() {
+                        @Override
+                        public void onSuccess() {
+                        }
+
+                        @Override
+                        public void onFailure(int error) {
+                        }
+                    });
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        }
     }
 }
