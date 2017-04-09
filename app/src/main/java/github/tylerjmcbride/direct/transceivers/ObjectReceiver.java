@@ -57,9 +57,9 @@ public class ObjectReceiver {
             try {
                 serverSocket.close();
                 serverSocket = null;
-                Log.d(Direct.TAG, "Succeeded to stop receiver.");
+                Log.d(Direct.TAG, "Succeeded to stop object receiver.");
             } catch (IOException e) {
-                Log.e(Direct.TAG, "Failed to stop receiver.");
+                Log.e(Direct.TAG, "Failed to stop object receiver.");
             }
         }
     }

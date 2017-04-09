@@ -85,7 +85,7 @@ public class Host extends Direct {
 
             @Override
             public void onAdieu(WifiP2pDeviceInfo clientInfo) {
-                Log.d(TAG, clientInfo.getMacAddress() + " has unregistered.");
+                Log.d(TAG, String.format("Succeeded to unregister client %s.", clientInfo.getMacAddress()));
                 clients.remove(clientInfo);
             }
         });
@@ -132,9 +132,9 @@ public class Host extends Direct {
      * Registers the local service for service discovery effectively starting the service; however,
      * this is only a request to add said local service, the service will not officially be added
      * until the framework is notified.
-     * @param listener The listener.
+     * @param callback The callback.
      */
-    public void startService(final ObjectCallback dataCallback, final WifiP2pManager.ActionListener listener) {
+    public void startService(final ObjectCallback dataCallback, final ResultCallback callback) {
         manager.clearLocalServices(channel, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
@@ -160,13 +160,13 @@ public class Host extends Direct {
                                         Log.d(TAG, "Succeeded to add local service.");
                                         serviceBroadcastingThread = new Thread(new ServiceBroadcastingRunnable());
                                         serviceBroadcastingThread.start();
-                                        listener.onSuccess();
+                                        callback.onSuccess();
                                     }
 
                                     @Override
                                     public void onFailure(int reason) {
                                         Log.d(TAG, "Failed to add local service.");
-                                        listener.onFailure(reason);
+                                        callback.onFailure();
                                     }
                                 });
                             }
@@ -174,7 +174,7 @@ public class Host extends Direct {
                             @Override
                             public void onFailure() {
                                 Log.d(TAG, "Failed to start registrar.");
-                                listener.onFailure(0);
+                                callback.onFailure();
                             }
                         });
                     }
@@ -182,7 +182,7 @@ public class Host extends Direct {
                     @Override
                     public void onFailure() {
                         Log.d(TAG, "Failed to start object receiver.");
-                        listener.onFailure(0);
+                        callback.onFailure();
                     }
                 });
             }
@@ -190,7 +190,7 @@ public class Host extends Direct {
             @Override
             public void onFailure(int reason) {
                 Log.d(TAG, "Failed to clear local services.");
-                listener.onFailure(reason);
+                callback.onFailure();
             }
         });
     }
@@ -199,9 +199,9 @@ public class Host extends Direct {
      * Removes the registered local service effectively stopping the service; however, this is only
      * a request to remove a local service, the service will not officially be removed until the
      * framework is notified.
-     * @param listener The listener.
+     * @param callback The callback.
      */
-    public void stopService(final WifiP2pManager.ActionListener listener) {
+    public void stopService(final ResultCallback callback) {
         manager.removeLocalService(channel, info, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
@@ -209,13 +209,13 @@ public class Host extends Direct {
                 if(serviceBroadcastingThread != null) {
                     serviceBroadcastingThread.interrupt();
                 }
-                removeGroup(listener);
+                removeGroup(callback);
             }
 
             @Override
             public void onFailure(int reason) {
                 Log.d(TAG, "Failed to remove local service.");
-                listener.onFailure(reason);
+                callback.onFailure();
             }
         });
     }
@@ -250,7 +250,7 @@ public class Host extends Direct {
                         }
 
                         // Prune disconnected client
-                        if(containsClient == false) {
+                        if(!containsClient) {
                             Log.d(TAG, clientInfo.getMacAddress() + " has disconnected.");
                             clients.remove(clientInfo);
                         }

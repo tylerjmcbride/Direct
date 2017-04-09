@@ -76,24 +76,6 @@ public class Client extends Direct {
                         }
                     });
                 } else {
-                    // Unregister with the host
-                    if(hostDevice != null && hostDeviceInfo != null && hostRegistrarPort != null) {
-                        final String hostMacAddress = hostDevice.deviceAddress;
-                        final InetSocketAddress hostAddress = new InetSocketAddress(hostDeviceInfo.getIpAddress(), hostRegistrarPort);
-
-                        registrar.unregister(hostAddress, new UnregisteredWithServerListener() {
-                            @Override
-                            public void onSuccess() {
-                                Log.d(TAG, String.format("Succeeded to unregister with %s.", hostMacAddress));
-                            }
-
-                            @Override
-                            public void onFailure() {
-                                Log.d(TAG, String.format("Failed to unregister with %s.", hostMacAddress));
-                            }
-                        });
-                    }
-
                     hostDevice = null;
                     hostDeviceInfo = null;
                     hostRegistrarPort = null;
@@ -138,9 +120,9 @@ public class Client extends Direct {
 
     /**
      * Starts the discovery of services.
-     * @param listener The listener.
+     * @param callback The callback.
      */
-    public void startDiscovery(final WifiP2pManager.ActionListener listener) {
+    public void startDiscovery(final ResultCallback callback) {
         if(serviceRequest == null) {
             serviceRequest = WifiP2pDnsSdServiceRequest.newInstance();
 
@@ -152,13 +134,13 @@ public class Client extends Direct {
                         @Override
                         public void onSuccess() {
                             Log.d(TAG, "Succeeded to start service discovery.");
-                            listener.onSuccess();
+                            callback.onSuccess();
                         }
 
                         @Override
                         public void onFailure(int reason) {
                             Log.d(TAG, "Failed to start service discovery.");
-                            listener.onFailure(reason);
+                            callback.onFailure();
                         }
                     });
                 }
@@ -166,7 +148,7 @@ public class Client extends Direct {
                 @Override
                 public void onFailure(int reason) {
                     Log.d(TAG, "Failed to add service request.");
-                    listener.onFailure(reason);
+                    callback.onFailure();
                 }
             });
         }
@@ -174,9 +156,9 @@ public class Client extends Direct {
 
     /**
      * Ends the discovery of services.
-     * @param listener The listener.
+     * @param callback The callback.
      */
-    public void stopDiscovery(final WifiP2pManager.ActionListener listener) {
+    public void stopDiscovery(final ResultCallback callback) {
         if(serviceRequest != null) {
             manager.removeServiceRequest(channel, serviceRequest, new WifiP2pManager.ActionListener() {
                 @Override
@@ -188,13 +170,13 @@ public class Client extends Direct {
                         @Override
                         public void onSuccess() {
                             Log.d(TAG, "Succeeded to stop peer discovery.");
-                            listener.onSuccess();
+                            callback.onSuccess();
                         }
 
                         @Override
                         public void onFailure(int reason) {
                             Log.d(TAG, "Failed to stop peer discovery.");
-                            listener.onSuccess();
+                            callback.onSuccess();
                         }
                     });
                 }
@@ -202,7 +184,7 @@ public class Client extends Direct {
                 @Override
                 public void onFailure(int reason) {
                     Log.d(TAG, "Failed to remove service request.");
-                    listener.onSuccess();
+                    callback.onSuccess();
                 }
             });
         }
@@ -211,50 +193,61 @@ public class Client extends Direct {
     /**
      * Connects to the specified hostDevice. If a connection exists prior to calling this method,
      * this method will disconnect said previous connection.
-     * @param host The specified hostDevice.
-     * @param listener The listener.
+     * @param hostDevice The specified hostDevice.
+     * @param callback The callback.
      */
-    public void connect(final WifiP2pDevice host, ObjectCallback dataCallback, final WifiP2pManager.ActionListener listener) {
-        if(host != null && hostIsNearby(host)) {
-            this.hostRegistrarPort = getHostRegistrationPort(host);
+    public void connect(final WifiP2pDevice hostDevice, ObjectCallback dataCallback, final ResultCallback callback) {
+        if(hostDevice != null && hostIsNearby(hostDevice)) {
+            this.hostRegistrarPort = getHostRegistrationPort(hostDevice);
             this.objectCallback = dataCallback;
 
             WifiP2pConfig config = new WifiP2pConfig();
-            config.deviceAddress = host.deviceAddress;
+            config.deviceAddress = hostDevice.deviceAddress;
             manager.connect(channel, config, new WifiP2pManager.ActionListener() {
                 @Override
                 public void onSuccess() {
-                    listener.onSuccess();
+                    callback.onSuccess();
                 }
 
                 @Override
                 public void onFailure(int reason) {
-                    Log.d(TAG, "Failed to connect to " + host.deviceAddress + ". Reason: " + reason + ".");
-                    listener.onFailure(reason);
+                    Log.d(TAG, String.format("Failed to connect to %s.", hostDevice.deviceAddress));
+                    callback.onFailure();
                 }
             });
         } else {
-            Log.d(TAG, "Failed to connect to device.");
-            listener.onFailure(0);
+            Log.d(TAG, "Failed to connect.");
+            callback.onFailure();
         }
     }
 
     /**
-     * If a connection to a hostDevice exists, this method will disconnect the device from said hostDevice.
-     * @param listener The listener.
+     * If a connection to a host exists, this method will disconnect the device from said host.
+     * @param callback The callback.
      */
-    public void disconnect(final WifiP2pManager.ActionListener listener) {
-        removeGroup(new WifiP2pManager.ActionListener() {
-            @Override
-            public void onSuccess() {
-                listener.onSuccess();
-            }
+    public void disconnect(final ResultCallback callback) {
+        // Must unregister itself with the host before removing the {@link WifiP2pGroup}
+        if(hostDevice != null && hostDeviceInfo != null && hostRegistrarPort != null) {
+            final String hostMacAddress = hostDevice.deviceAddress;
+            final InetSocketAddress hostAddress = new InetSocketAddress(hostDeviceInfo.getIpAddress(), hostRegistrarPort);
 
-            @Override
-            public void onFailure(int reason) {
-                listener.onFailure(reason);
-            }
-        });
+            registrar.unregister(hostAddress, new UnregisteredWithServerListener() {
+                @Override
+                public void onSuccess() {
+                    Log.d(TAG, String.format("Succeeded to unregister with %s.", hostMacAddress));
+                    removeGroup(callback);
+                }
+
+                @Override
+                public void onFailure() {
+                    Log.d(TAG, String.format("Failed to unregister with %s.", hostMacAddress));
+                    removeGroup(callback);
+                }
+            });
+        } else {
+            Log.d(TAG, "Not currently registered.");
+            removeGroup(callback);
+        }
     }
 
     /**

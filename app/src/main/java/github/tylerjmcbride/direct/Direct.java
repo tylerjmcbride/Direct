@@ -16,6 +16,7 @@ import android.util.Log;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
+import github.tylerjmcbride.direct.listeners.ResultCallback;
 import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
 import github.tylerjmcbride.direct.transceivers.ObjectReceiver;
 import github.tylerjmcbride.direct.transceivers.ObjectTransmitter;
@@ -96,9 +97,9 @@ public abstract class Direct {
     /**
      * This method will attempt to both remove the current {@link WifiP2pGroup} and forget it's
      * persistence.
-     * @param listener The listener.
+     * @param callback The callback.
      */
-    protected void removeGroup(final WifiP2pManager.ActionListener listener) {
+    protected void removeGroup(final ResultCallback callback) {
         manager.requestGroupInfo(channel, new WifiP2pManager.GroupInfoListener() {
             @Override
             public void onGroupInfoAvailable(final WifiP2pGroup group) {
@@ -106,24 +107,24 @@ public abstract class Direct {
                     @Override
                     public void onSuccess() {
                         Log.d(TAG, "Succeeded to remove group.");
-                        deletePersistentGroup(group, new WifiP2pManager.ActionListener() {
+                        deletePersistentGroup(group, new ResultCallback() {
                             @Override
                             public void onSuccess() {
                                 Log.d(TAG, "Succeeded to remove persistent group.");
                             }
 
                             @Override
-                            public void onFailure(int reason) {
+                            public void onFailure() {
                                 Log.d(TAG, "Failed to remove persistent group.");
                             }
                         });
-                        listener.onSuccess();
+                        callback.onSuccess();
                     }
 
                     @Override
                     public void onFailure(int reason) {
                         Log.d(TAG, "Failed to retrieve group.");
-                        listener.onFailure(reason);
+                        callback.onFailure();
                     }
                 });
             }
@@ -134,8 +135,9 @@ public abstract class Direct {
      * Through reflection, this method will attempt to forget the persistent group.
      * @see <a href="http://stackoverflow.com/questions/23653707/forgetting-old-wifi-direct-connections"></a>
      * @param wifiP2pGroup The respective {@link WifiP2pGroup}.
+     * @param callback The callback.
      */
-    protected void deletePersistentGroup(WifiP2pGroup wifiP2pGroup, final WifiP2pManager.ActionListener listener) {
+    protected void deletePersistentGroup(WifiP2pGroup wifiP2pGroup, final ResultCallback callback) {
         try {
             Method getNetworkId = WifiP2pGroup.class.getMethod("getNetworkId");
             Integer networkId = (Integer) getNetworkId.invoke(wifiP2pGroup);
@@ -145,18 +147,18 @@ public abstract class Direct {
                 @Override
                 public void onSuccess() {
                     Log.d(TAG, "Succeeded to delete persistent group.");
-                    listener.onSuccess();
+                    callback.onSuccess();
                 }
 
                 @Override
                 public void onFailure(int reason) {
                     Log.d(TAG, "Failed to delete persistent group");
-                    listener.onFailure(reason);
+                    callback.onFailure();
                 }
             });
         } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
             Log.e(TAG, "Could not delete persistent group");
-            listener.onFailure(0);
+            callback.onFailure();
         }
     }
 }

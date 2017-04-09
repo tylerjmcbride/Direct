@@ -109,7 +109,7 @@ public class ClientRegistrar {
 
                     outputStream.close();
                 } catch (IOException ex) {
-                    Log.e(Direct.TAG, "Failed to register with server.");
+                    Log.e(Direct.TAG, "Failed to unregister with server.");
                     handler.post(new Runnable() {
                         @Override
                         public void run() {

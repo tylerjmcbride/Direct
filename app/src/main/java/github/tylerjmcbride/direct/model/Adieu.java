@@ -1,6 +1,8 @@
 package github.tylerjmcbride.direct.model;
 
-public class Adieu {
+import java.io.Serializable;
+
+public class Adieu implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
