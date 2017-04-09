@@ -13,12 +13,12 @@ import java.util.concurrent.Executors;
 
 import github.tylerjmcbride.direct.Client;
 import github.tylerjmcbride.direct.Direct;
+import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
 import github.tylerjmcbride.direct.registration.listeners.RegisteredWithServerListener;
-import github.tylerjmcbride.direct.listeners.SocketInitializationCompleteListener;
 import github.tylerjmcbride.direct.registration.listeners.UnregisteredWithServerListener;
 import github.tylerjmcbride.direct.registration.model.Adieu;
 import github.tylerjmcbride.direct.registration.model.Handshake;
-import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
+import github.tylerjmcbride.direct.sockets.listeners.SocketInitializationCompleteListener;
 import github.tylerjmcbride.direct.sockets.runnables.SocketConnectionRunnable;
 
 public class ClientRegistrar {

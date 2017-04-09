@@ -20,14 +20,14 @@ import java.util.List;
 import java.util.Map;
 
 import github.tylerjmcbride.direct.callbacks.ResultCallback;
-import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
-import github.tylerjmcbride.direct.registration.listeners.RegisteredWithServerListener;
-import github.tylerjmcbride.direct.registration.listeners.UnregisteredWithServerListener;
 import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
 import github.tylerjmcbride.direct.registration.ClientRegistrar;
+import github.tylerjmcbride.direct.registration.listeners.RegisteredWithServerListener;
+import github.tylerjmcbride.direct.registration.listeners.UnregisteredWithServerListener;
 import github.tylerjmcbride.direct.sockets.listeners.ServerSocketInitializationCompleteListener;
 import github.tylerjmcbride.direct.sockets.listeners.SocketInitializationCompleteListener;
 import github.tylerjmcbride.direct.transceivers.DirectBroadcastReceiver;
+import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
 
 public class Client extends Direct {
 
@@ -45,6 +45,22 @@ public class Client extends Direct {
         receiver = new DirectBroadcastReceiver(manager, channel) {
             @Override
             protected void connectionChanged(WifiP2pInfo p2pInfo, NetworkInfo networkInfo, WifiP2pGroup p2pGroup) {
+                NetworkInfo.State state = networkInfo.getState();
+
+                if(state.equals(NetworkInfo.State.CONNECTED)) {
+                    Log.d(TAG, "CONNECTED");
+                } else if(state.equals(NetworkInfo.State.CONNECTING)) {
+                    Log.d(TAG, "CONNECTING");
+                } else if(state.equals(NetworkInfo.State.DISCONNECTING)) {
+                    Log.d(TAG, "DISCONNECTING");
+                } else if(state.equals(NetworkInfo.State.DISCONNECTED)) {
+                    Log.d(TAG, "DISCONNECTED");
+                } else if(state.equals(NetworkInfo.State.SUSPENDED)) {
+                    Log.d(TAG, "SUSPENDED");
+                } else if(state.equals(NetworkInfo.State.UNKNOWN)) {
+                    Log.d(TAG, "UNKNOWN");
+                }
+
                 if (hostDevice == null && hostRegistrarPort != null && p2pInfo.groupFormed && networkInfo.isConnected()) {
                     Log.d(TAG, "Succeeded to connect to host.");
                     hostDevice = p2pGroup.getOwner();

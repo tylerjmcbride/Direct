@@ -1,7 +1,6 @@
 package github.tylerjmcbride.direct;
 
 import android.net.wifi.p2p.WifiP2pDevice;
-import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
@@ -14,8 +13,8 @@ import android.widget.Button;
 import android.widget.Toast;
 
 import github.tylerjmcbride.direct.callbacks.ResultCallback;
-import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
 import github.tylerjmcbride.direct.registration.model.Handshake;
+import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -55,14 +54,14 @@ public class MainActivity extends AppCompatActivity {
         clientButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                client.startDiscovery(new WifiP2pManager.ActionListener() {
+                client.startDiscovery(new ResultCallback() {
                     @Override
                     public void onSuccess() {
 
                     }
 
                     @Override
-                    public void onFailure(int reason) {
+                    public void onFailure() {
 
                     }
                 });
@@ -74,14 +73,14 @@ public class MainActivity extends AppCompatActivity {
         clientButtonend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                client.stopDiscovery(new WifiP2pManager.ActionListener() {
+                client.stopDiscovery(new ResultCallback() {
                     @Override
                     public void onSuccess() {
 
                     }
 
                     @Override
-                    public void onFailure(int reason) {
+                    public void onFailure() {
 
                     }
                 });
@@ -99,14 +98,14 @@ public class MainActivity extends AppCompatActivity {
                         public void onReceived(Object object) {
                             Log.d(Direct.TAG, "CLIENT YOU GOT THE DATA HURRAY!");
                         }
-                    }, new WifiP2pManager.ActionListener() {
+                    }, new ResultCallback() {
                         @Override
                         public void onSuccess() {
 
                         }
 
                         @Override
-                        public void onFailure(int reason) {
+                        public void onFailure() {
 
                         }
                     });
@@ -119,14 +118,14 @@ public class MainActivity extends AppCompatActivity {
         clientButtondisconnect.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                client.disconnect(new WifiP2pManager.ActionListener() {
+                client.disconnect(new ResultCallback() {
                     @Override
                     public void onSuccess() {
 
                     }
 
                     @Override
-                    public void onFailure(int reason) {
+                    public void onFailure() {
 
                     }
                 });
@@ -143,14 +142,14 @@ public class MainActivity extends AppCompatActivity {
                     public void onReceived(Object object) {
                         Log.d(Direct.TAG, "HOST YOU GOT THE DATA HURRAY!");
                     }
-                }, new WifiP2pManager.ActionListener() {
+                }, new ResultCallback() {
                     @Override
                     public void onSuccess() {
 
                     }
 
                     @Override
-                    public void onFailure(int reason) {
+                    public void onFailure() {
 
                     }
                 });
@@ -162,14 +161,14 @@ public class MainActivity extends AppCompatActivity {
         hostButtonend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                host.stopService(new WifiP2pManager.ActionListener() {
+                host.stopService(new ResultCallback() {
                     @Override
                     public void onSuccess() {
 
                     }
 
                     @Override
-                    public void onFailure(int reason) {
+                    public void onFailure() {
 
                     }
                 });
