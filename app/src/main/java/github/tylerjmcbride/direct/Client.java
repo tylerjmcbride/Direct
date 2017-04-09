@@ -257,27 +257,6 @@ public class Client extends Direct {
     }
 
     /**
-     * Sets the {@link WifiP2pManager} DNS response listeners. For internal use only.
-     */
-    private void setDnsSdResponseListeners() {
-        manager.setDnsSdResponseListeners(channel, new WifiP2pManager.DnsSdServiceResponseListener() {
-            @Override
-            public void onDnsSdServiceAvailable(String instanceName, String registrationType, WifiP2pDevice device) {
-            }
-        }, new WifiP2pManager.DnsSdTxtRecordListener() {
-            @Override
-            public void onDnsSdTxtRecordAvailable(String fullDomain, Map<String, String> record, WifiP2pDevice device) {
-                if(record != null && record.containsKey(SERVICE_NAME_TAG) && record.get(SERVICE_NAME_TAG).equals(service)) {
-                    if (!nearbyHostDevices.keySet().contains(device)) {
-                        Log.d(TAG, "Succeeded to retrieve " + device.deviceAddress + " txt record.");
-                        nearbyHostDevices.put(device, Integer.valueOf(record.get(REGISTRAR_PORT_TAG)));
-                    }
-                }
-            }
-        });
-    }
-
-    /**
      * Creates and returns a deep copy of the list of nearby hostDevice {@link WifiP2pDevice}s.
      * @return A deep copy of the list of nearby hostDevice {@link WifiP2pDevice}s.
      */
@@ -325,5 +304,27 @@ public class Client extends Direct {
             }
         }
         throw new NullPointerException();
+    }
+
+    /**
+     * Sets the {@link WifiP2pManager} DNS response listeners. For internal use only.
+     */
+    private void setDnsSdResponseListeners() {
+        manager.setDnsSdResponseListeners(channel, new WifiP2pManager.DnsSdServiceResponseListener() {
+            @Override
+            public void onDnsSdServiceAvailable(String instanceName, String registrationType, WifiP2pDevice device) {
+                // Nothing to be done here
+            }
+        }, new WifiP2pManager.DnsSdTxtRecordListener() {
+            @Override
+            public void onDnsSdTxtRecordAvailable(String fullDomain, Map<String, String> record, WifiP2pDevice device) {
+                if(record != null && record.containsKey(SERVICE_NAME_TAG) && record.get(SERVICE_NAME_TAG).equals(service)) {
+                    if (!nearbyHostDevices.keySet().contains(device)) {
+                        Log.d(TAG, "Succeeded to retrieve " + device.deviceAddress + " txt record.");
+                        nearbyHostDevices.put(device, Integer.valueOf(record.get(REGISTRAR_PORT_TAG)));
+                    }
+                }
+            }
+        });
     }
 }
