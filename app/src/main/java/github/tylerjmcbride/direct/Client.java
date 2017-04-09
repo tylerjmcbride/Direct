@@ -26,7 +26,7 @@ import github.tylerjmcbride.direct.listeners.ServerSocketInitializationCompleteL
 import github.tylerjmcbride.direct.listeners.SocketInitializationCompleteListener;
 import github.tylerjmcbride.direct.listeners.UnregisteredWithServerListener;
 import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
-import github.tylerjmcbride.direct.receivers.DirectBroadcastReceiver;
+import github.tylerjmcbride.direct.transceivers.DirectBroadcastReceiver;
 import github.tylerjmcbride.direct.registration.ClientRegistrar;
 
 public class Client extends Direct {

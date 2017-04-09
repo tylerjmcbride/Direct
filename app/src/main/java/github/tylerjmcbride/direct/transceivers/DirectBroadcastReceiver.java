@@ -1,4 +1,4 @@
-package github.tylerjmcbride.direct.receivers;
+package github.tylerjmcbride.direct.transceivers;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;

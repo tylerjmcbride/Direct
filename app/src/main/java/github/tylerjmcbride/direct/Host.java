@@ -25,7 +25,7 @@ import github.tylerjmcbride.direct.listeners.ResultCallback;
 import github.tylerjmcbride.direct.listeners.ServerSocketInitializationCompleteListener;
 import github.tylerjmcbride.direct.listeners.SocketInitializationCompleteListener;
 import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
-import github.tylerjmcbride.direct.receivers.DirectBroadcastReceiver;
+import github.tylerjmcbride.direct.transceivers.DirectBroadcastReceiver;
 import github.tylerjmcbride.direct.registration.HostRegistrar;
 
 public class Host extends Direct {
