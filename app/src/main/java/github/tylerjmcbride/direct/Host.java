@@ -45,17 +45,13 @@ public class Host extends Direct {
             @Override
             protected void connectionChanged(WifiP2pInfo p2pInfo, NetworkInfo networkInfo, WifiP2pGroup p2pGroup) {
                 if (p2pInfo.groupFormed && networkInfo.isConnected()) {
-                    manager.requestPeers(channel, new WifiP2pManager.PeerListListener() {
-                        @Override
-                        public void onPeersAvailable(WifiP2pDeviceList peers) {
-                            pruneDisconnectedClients();
-                        }
-                    });
+                    pruneDisconnectedClients();
                 } else {
                     clients.clear();
                 }
             }
 
+            @Override
             protected void peersChanged() {
                 pruneDisconnectedClients();
             }
