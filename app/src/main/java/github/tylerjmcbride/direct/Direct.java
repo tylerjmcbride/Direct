@@ -24,7 +24,7 @@ public abstract class Direct {
 
     public static final String TAG = "Direct";
     public static final String SERVICE_NAME_TAG = "SERVICE_NAME";
-    public static final String PORT_TAG = "PORT";
+    public static final String REGISTRAR_PORT_TAG = "PORT";
 
     protected WifiManager wifiManager;
     protected WifiP2pManager manager;
@@ -33,25 +33,22 @@ public abstract class Direct {
     protected IntentFilter intentFilter;
     protected Handler handler;
 
-    protected int serverPort;
     protected String service;
     protected String instance;
 
-    protected ObjectTransmitter dataSender;
-    protected ObjectReceiver dataReceiver;
+    protected ObjectTransmitter objectTransmitter;
+    protected ObjectReceiver objectReceiver;
 
     protected WifiP2pDevice thisDevice;
     protected WifiP2pDeviceInfo thisDeviceInfo;
 
     /**
      * Constructor for the abstract class {@link Direct}.
-     * @param application
-     * @param instance
-     * @param service
-     * @param serverPort
+     * @param application The {@link Application}.
+     * @param instance The name of the instance.
+     * @param service The service type.
      */
-    public Direct(Application application, String service, int serverPort, String instance) {
-        this.serverPort = serverPort;
+    public Direct(Application application, String service, String instance) {
         this.service = service;
         this.instance = instance;
 
@@ -66,8 +63,8 @@ public abstract class Direct {
         final Looper looper = context.getMainLooper();
 
         this.handler = new Handler(looper);
-        this.dataReceiver = new ObjectReceiver(handler);
-        this.dataSender = new ObjectTransmitter(handler);
+        this.objectReceiver = new ObjectReceiver(handler);
+        this.objectTransmitter = new ObjectTransmitter(handler);
         this.wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
         this.manager = (WifiP2pManager) context.getSystemService(Context.WIFI_P2P_SERVICE);
         this.channel = manager.initialize(context, looper, new WifiP2pManager.ChannelListener() {

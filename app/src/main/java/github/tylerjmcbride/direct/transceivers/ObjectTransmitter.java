@@ -3,6 +3,7 @@ package github.tylerjmcbride.direct.transceivers;
 import android.os.Handler;
 import android.util.Log;
 
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
@@ -17,8 +18,6 @@ import github.tylerjmcbride.direct.utilities.runnables.SocketConnectionRunnable;
 
 public class ObjectTransmitter {
 
-    private static final int BUFFER_SIZE = 65536;
-
     private ExecutorService executor = Executors.newFixedThreadPool(5);
     private Handler handler;
 
@@ -28,17 +27,18 @@ public class ObjectTransmitter {
 
     /**
      * Sends data to the respective address.
-     * @param object The object to send.
+     * @param object The {@link Serializable} object to send.
      * @param address The {@link InetSocketAddress}.
      * @param listener The {@link SocketInitializationCompleteListener}.
      */
     public void send(final Serializable object, InetSocketAddress address, final SocketInitializationCompleteListener listener) {
-        executor.submit(new SocketConnectionRunnable(address, BUFFER_SIZE, new SocketInitializationCompleteListener() {
+        executor.submit(new SocketConnectionRunnable(address, new SocketInitializationCompleteListener() {
             @Override
             public void onSuccess(final Socket hostSocket) {
                 try {
-                    ObjectOutputStream outputStream = new ObjectOutputStream(hostSocket.getOutputStream());
+                    ObjectOutputStream outputStream = new ObjectOutputStream(new BufferedOutputStream(hostSocket.getOutputStream()));
                     outputStream.writeObject(object);
+                    outputStream.flush();
                     outputStream.close();
                     Log.d(Direct.TAG, "Succeeded to send object.");
                 } catch (IOException ex) {

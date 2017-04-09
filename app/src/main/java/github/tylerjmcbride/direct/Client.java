@@ -21,8 +21,10 @@ import java.util.Map;
 
 import github.tylerjmcbride.direct.listeners.ObjectCallback;
 import github.tylerjmcbride.direct.listeners.RegisteredWithServerListener;
+import github.tylerjmcbride.direct.listeners.ResultCallback;
 import github.tylerjmcbride.direct.listeners.ServerSocketInitializationCompleteListener;
 import github.tylerjmcbride.direct.listeners.SocketInitializationCompleteListener;
+import github.tylerjmcbride.direct.listeners.UnregisteredWithServerListener;
 import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
 import github.tylerjmcbride.direct.receivers.DirectBroadcastReceiver;
 import github.tylerjmcbride.direct.registration.ClientRegistrar;
@@ -33,27 +35,27 @@ public class Client extends Direct {
     private WifiP2pDnsSdServiceRequest serviceRequest = null;
     private Map<WifiP2pDevice, Integer> nearbyHostDevices = new HashMap<>();
     private WifiP2pDevice hostDevice = null;
+    private Integer hostRegistrarPort = null;
     private WifiP2pDeviceInfo hostDeviceInfo = null;
-    private int hostPort;
-    private ObjectCallback dataCallback;
+    private ObjectCallback objectCallback;
 
     /**
      * Creates a Wi-Fi Direct Client.
      */
-    public Client(Application application, String service, final int serverPort, String instance) {
-        super(application, service, serverPort, instance);
+    public Client(Application application, String service, String instance) {
+        super(application, service, instance);
         receiver = new DirectBroadcastReceiver(manager, channel) {
             @Override
             protected void connectionChanged(WifiP2pInfo p2pInfo, NetworkInfo networkInfo, WifiP2pGroup p2pGroup) {
-                if (hostDevice == null && p2pInfo.groupFormed && networkInfo.isConnected()) {
+                if (hostDevice == null && hostRegistrarPort != null && p2pInfo.groupFormed && networkInfo.isConnected()) {
                     Log.d(TAG, "Succeeded to connect to host.");
                     hostDevice = p2pGroup.getOwner();
-                    final InetSocketAddress hostAddress = new InetSocketAddress(p2pInfo.groupOwnerAddress.getHostAddress(), hostPort);
+                    final InetSocketAddress hostAddress = new InetSocketAddress(p2pInfo.groupOwnerAddress.getHostAddress(), hostRegistrarPort);
 
-                    dataReceiver.start(dataCallback, new ServerSocketInitializationCompleteListener() {
+                    objectReceiver.start(objectCallback, new ServerSocketInitializationCompleteListener() {
                         @Override
                         public void onSuccess(ServerSocket serverSocket) {
-                            Log.d(TAG, "Succeeded to start data receiver.");
+                            Log.d(TAG, String.format("Succeeded to start object receiver on port %d.", serverSocket.getLocalPort()));
                             thisDeviceInfo.setPort(serverSocket.getLocalPort());
 
                             registrar.register(hostAddress, new RegisteredWithServerListener() {
@@ -76,9 +78,27 @@ public class Client extends Direct {
                         }
                     });
                 } else {
+                    if(hostDevice != null && hostDeviceInfo != null && hostRegistrarPort != null) {
+                        final InetSocketAddress hostAddress = new InetSocketAddress(hostDeviceInfo.getIpAddress(), hostRegistrarPort);
+
+                        registrar.unregister(hostAddress, new UnregisteredWithServerListener() {
+                            @Override
+                            public void onSuccess() {
+                                Log.d(TAG, "Succeeded to unregister with the host.");
+                            }
+
+                            @Override
+                            public void onFailure() {
+                                Log.d(TAG, "Failed to unregister with the host.");
+                            }
+                        });
+                    }
+
                     hostDevice = null;
                     hostDeviceInfo = null;
-                    dataReceiver.stop();
+                    hostRegistrarPort = null;
+                    objectCallback = null;
+                    objectReceiver.stop();
                 }
             }
 
@@ -93,19 +113,21 @@ public class Client extends Direct {
         setDnsSdResponseListeners();
     }
 
-    public void send(Serializable object) {
+    public void send(Serializable object, final ResultCallback callback) {
         if(hostDevice != null && hostDeviceInfo != null) {
-            dataSender.send(object, new InetSocketAddress(hostDeviceInfo.getIpAddress(), hostDeviceInfo.getPort()), new SocketInitializationCompleteListener() {
+            objectTransmitter.send(object, new InetSocketAddress(hostDeviceInfo.getIpAddress(), hostDeviceInfo.getPort()), new SocketInitializationCompleteListener() {
                 @Override
                 public void onSuccess(Socket socket) {
-                    // hurray
+                    callback.onSuccess();
                 }
 
                 @Override
                 public void onFailure() {
-                    // oh no
+                    callback.onFailure();
                 }
             });
+        } else {
+            callback.onFailure();
         }
     }
 
@@ -117,33 +139,20 @@ public class Client extends Direct {
         if(serviceRequest == null) {
             serviceRequest = WifiP2pDnsSdServiceRequest.newInstance();
 
-            manager.removeServiceRequest(channel, serviceRequest, new WifiP2pManager.ActionListener() {
+            manager.addServiceRequest(channel, serviceRequest, new WifiP2pManager.ActionListener() {
                 @Override
                 public void onSuccess() {
-                    Log.d(TAG, "Succeeded to remove service request.");
-                    nearbyHostDevices.clear();
-                    manager.addServiceRequest(channel, serviceRequest, new WifiP2pManager.ActionListener() {
+                    Log.d(TAG, "Succeeded to add service request.");
+                    manager.discoverServices(channel, new WifiP2pManager.ActionListener() {
                         @Override
                         public void onSuccess() {
-                            Log.d(TAG, "Succeeded to add service request.");
-                            manager.discoverServices(channel, new WifiP2pManager.ActionListener() {
-                                @Override
-                                public void onSuccess() {
-                                    Log.d(TAG, "Succeeded to start service discovery.");
-                                    listener.onSuccess();
-                                }
-
-                                @Override
-                                public void onFailure(int reason) {
-                                    Log.d(TAG, "Failed to start service discovery.");
-                                    listener.onFailure(reason);
-                                }
-                            });
+                            Log.d(TAG, "Succeeded to start service discovery.");
+                            listener.onSuccess();
                         }
 
                         @Override
                         public void onFailure(int reason) {
-                            Log.d(TAG, "Failed to add service request.");
+                            Log.d(TAG, "Failed to start service discovery.");
                             listener.onFailure(reason);
                         }
                     });
@@ -151,7 +160,7 @@ public class Client extends Direct {
 
                 @Override
                 public void onFailure(int reason) {
-                    Log.d(TAG, "Failed to remove local service.");
+                    Log.d(TAG, "Failed to add service request.");
                     listener.onFailure(reason);
                 }
             });
@@ -159,7 +168,7 @@ public class Client extends Direct {
     }
 
     /**
-     * Ends the discovery of servies.
+     * Ends the discovery of services.
      * @param listener The listener.
      */
     public void stopDiscovery(final WifiP2pManager.ActionListener listener) {
@@ -201,27 +210,24 @@ public class Client extends Direct {
      * @param listener The listener.
      */
     public void connect(final WifiP2pDevice host, ObjectCallback dataCallback, final WifiP2pManager.ActionListener listener) {
-        if(hostIsNearby(host)) {
-            hostPort = getHostRegistrationPort(host);
+        if(host != null && hostIsNearby(host)) {
+            this.hostRegistrarPort = getHostRegistrationPort(host);
+            this.objectCallback = dataCallback;
 
-            if (host != null) {
-                this.dataCallback = dataCallback;
-                WifiP2pConfig config = new WifiP2pConfig();
-                config.deviceAddress = host.deviceAddress;
+            WifiP2pConfig config = new WifiP2pConfig();
+            config.deviceAddress = host.deviceAddress;
+            manager.connect(channel, config, new WifiP2pManager.ActionListener() {
+                @Override
+                public void onSuccess() {
+                    listener.onSuccess();
+                }
 
-                manager.connect(channel, config, new WifiP2pManager.ActionListener() {
-                    @Override
-                    public void onSuccess() {
-                        listener.onSuccess();
-                    }
-
-                    @Override
-                    public void onFailure(int reason) {
-                        Log.d(TAG, "Failed to connect to " + host.deviceAddress + ". Reason: " + reason + ".");
-                        listener.onFailure(reason);
-                    }
-                });
-            }
+                @Override
+                public void onFailure(int reason) {
+                    Log.d(TAG, "Failed to connect to " + host.deviceAddress + ". Reason: " + reason + ".");
+                    listener.onFailure(reason);
+                }
+            });
         } else {
             Log.d(TAG, "Failed to connect to device.");
             listener.onFailure(0);
@@ -236,7 +242,6 @@ public class Client extends Direct {
         removeGroup(new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
-                dataCallback = null;
                 listener.onSuccess();
             }
 
@@ -261,7 +266,7 @@ public class Client extends Direct {
                 if(record != null && record.containsKey(SERVICE_NAME_TAG) && record.get(SERVICE_NAME_TAG).equals(service)) {
                     if (!nearbyHostDevices.keySet().contains(device)) {
                         Log.d(TAG, "Succeeded to retrieve " + device.deviceAddress + " txt record.");
-                        nearbyHostDevices.put(device, Integer.valueOf(record.get(PORT_TAG)));
+                        nearbyHostDevices.put(device, Integer.valueOf(record.get(REGISTRAR_PORT_TAG)));
                     }
                 }
             }

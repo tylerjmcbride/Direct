@@ -11,9 +11,11 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Toast;
 
 import github.tylerjmcbride.direct.listeners.ObjectCallback;
-import github.tylerjmcbride.direct.model.data.Handshake;
+import github.tylerjmcbride.direct.listeners.ResultCallback;
+import github.tylerjmcbride.direct.model.Handshake;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -45,12 +47,14 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        client = new Client(getApplication(), "JUKE", Build.MODEL + " " + Build.USER);
+        host = new Host(getApplication(), "JUKE", Build.MODEL + " " + Build.USER);
+
         clientButton = (Button) findViewById(R.id.client);
 
         clientButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                client = new Client(getApplication(), "JUKE", 60606, Build.MODEL + " " + Build.USER);
                 client.startDiscovery(new WifiP2pManager.ActionListener() {
                     @Override
                     public void onSuccess() {
@@ -134,7 +138,6 @@ public class MainActivity extends AppCompatActivity {
         hostButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                host = new Host(getApplication(), "JUKE", 60606, Build.MODEL + " " + Build.USER);
                 host.startService(new ObjectCallback() {
                     @Override
                     public void onReceived(Object object) {
@@ -178,7 +181,17 @@ public class MainActivity extends AppCompatActivity {
         clientButtonsend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                client.send(new Handshake("lol", 0));
+                client.send(new Handshake("lol", 0), new ResultCallback() {
+                    @Override
+                    public void onSuccess() {
+                        Toast.makeText(getApplicationContext(), "Succeeded Sending Data.", Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onFailure() {
+                        Toast.makeText(getApplicationContext(), "Failed Sending Data.", Toast.LENGTH_SHORT).show();
+                    }
+                });
             }
         });
 
@@ -187,8 +200,20 @@ public class MainActivity extends AppCompatActivity {
         hostButtonsend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                WifiP2pDevice device = host.getRegisteredClients().get(0);
-                host.send(device, new Handshake("lol", 0));
+                if(!host.getRegisteredClients().isEmpty()) {
+                    WifiP2pDevice device = host.getRegisteredClients().get(0);
+                    host.send(device, new Handshake("lol", 0), new ResultCallback() {
+                        @Override
+                        public void onSuccess() {
+                            Toast.makeText(getApplicationContext(), "Succeeded Sending Data.", Toast.LENGTH_SHORT).show();
+                        }
+
+                        @Override
+                        public void onFailure() {
+                            Toast.makeText(getApplicationContext(), "Failed Sending Data.", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
             }
         });
     }

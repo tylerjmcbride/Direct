@@ -11,33 +11,41 @@ import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import github.tylerjmcbride.direct.Client;
 import github.tylerjmcbride.direct.Direct;
 import github.tylerjmcbride.direct.listeners.RegisteredWithServerListener;
 import github.tylerjmcbride.direct.listeners.SocketInitializationCompleteListener;
+import github.tylerjmcbride.direct.listeners.UnregisteredWithServerListener;
+import github.tylerjmcbride.direct.model.Adieu;
+import github.tylerjmcbride.direct.model.Handshake;
 import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
-import github.tylerjmcbride.direct.model.data.Handshake;
 import github.tylerjmcbride.direct.utilities.runnables.SocketConnectionRunnable;
 
-public class ClientRegistrar extends Registrar {
+public class ClientRegistrar {
 
     private ExecutorService executor = Executors.newSingleThreadExecutor();
 
-    public ClientRegistrar(Direct direct, Handler handler) {
-        super(direct, handler);
+    private Client client;
+    private Handler handler;
+
+    public ClientRegistrar(Client client, Handler handler) {
+        this.client = client;
+        this.handler = handler;
     }
 
     public void register(InetSocketAddress address, final RegisteredWithServerListener registeredWithServerListener) {
-        executor.submit(new SocketConnectionRunnable(address, BUFFER_SIZE, new SocketInitializationCompleteListener() {
+        executor.submit(new SocketConnectionRunnable(address, new SocketInitializationCompleteListener() {
             @Override
             public void onSuccess(final Socket hostSocket) {
                 try {
                     // Send details about the client device
-                    WifiP2pDeviceInfo info = direct.getThisDeviceInfo();
+                    WifiP2pDeviceInfo info = client.getThisDeviceInfo();
                     ObjectOutputStream outputStream = new ObjectOutputStream(hostSocket.getOutputStream());
                     outputStream.writeObject(new Handshake(info.getMacAddress(), info.getPort()));
+                    outputStream.flush();
 
                     // Retrieve details about the host device
-                    ObjectInputStream  inputStream = new ObjectInputStream(hostSocket.getInputStream());
+                    ObjectInputStream inputStream = new ObjectInputStream(hostSocket.getInputStream());
                     Handshake handshake = (Handshake) inputStream.readObject();
 
                     // Notify framework
@@ -75,6 +83,54 @@ public class ClientRegistrar extends Registrar {
                     @Override
                     public void run() {
                         registeredWithServerListener.onFailure();
+                    }
+                });
+            }
+        }));
+    }
+
+    public void unregister(InetSocketAddress address, final UnregisteredWithServerListener unregisteredWithServerListener) {
+        executor.submit(new SocketConnectionRunnable(address, new SocketInitializationCompleteListener() {
+            @Override
+            public void onSuccess(final Socket hostSocket) {
+                try {
+                    // Send the unregister request to the host
+                    WifiP2pDeviceInfo info = client.getThisDeviceInfo();
+                    ObjectOutputStream outputStream = new ObjectOutputStream(hostSocket.getOutputStream());
+                    outputStream.writeObject(new Adieu(info.getMacAddress(), info.getPort()));
+                    outputStream.flush();
+
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            unregisteredWithServerListener.onSuccess();
+                        }
+                    });
+
+                    outputStream.close();
+                } catch (IOException ex) {
+                    Log.e(Direct.TAG, "Failed to register with server.");
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            unregisteredWithServerListener.onFailure();
+                        }
+                    });
+                } finally {
+                    try {
+                        hostSocket.close();
+                    } catch (Exception ex) {
+                        Log.e(Direct.TAG, "Failed to close registration socket.");
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure() {
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        unregisteredWithServerListener.onFailure();
                     }
                 });
             }

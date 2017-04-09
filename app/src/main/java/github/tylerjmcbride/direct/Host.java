@@ -21,6 +21,7 @@ import java.util.Map;
 
 import github.tylerjmcbride.direct.listeners.HandshakeListener;
 import github.tylerjmcbride.direct.listeners.ObjectCallback;
+import github.tylerjmcbride.direct.listeners.ResultCallback;
 import github.tylerjmcbride.direct.listeners.ServerSocketInitializationCompleteListener;
 import github.tylerjmcbride.direct.listeners.SocketInitializationCompleteListener;
 import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
@@ -38,14 +39,25 @@ public class Host extends Direct {
 
     private Map<WifiP2pDeviceInfo, WifiP2pDevice> clients = new HashMap<>();
 
-    public Host(Application application, final String service, final int serverPort, final String instance) {
-        super(application, service, serverPort, instance);
+    public Host(Application application, final String service, final String instance) {
+        super(application, service, instance);
         receiver = new DirectBroadcastReceiver(manager, channel) {
             @Override
             protected void connectionChanged(WifiP2pInfo p2pInfo, NetworkInfo networkInfo, WifiP2pGroup p2pGroup) {
-                if (!p2pInfo.groupFormed && !networkInfo.isConnected()) {
+                if (p2pInfo.groupFormed && networkInfo.isConnected()) {
+                    manager.requestPeers(channel, new WifiP2pManager.PeerListListener() {
+                        @Override
+                        public void onPeersAvailable(WifiP2pDeviceList peers) {
+                            pruneDisconnectedClients();
+                        }
+                    });
+                } else {
                     clients.clear();
                 }
+            }
+
+            protected void peersChanged() {
+                pruneDisconnectedClients();
             }
 
             @Override
@@ -73,27 +85,41 @@ public class Host extends Direct {
                     }
                 });
             }
+
+            @Override
+            public void onAdieu(WifiP2pDeviceInfo clientInfo) {
+                Log.d(TAG, clientInfo.getMacAddress() + " has unregistered.");
+                clients.remove(clientInfo);
+            }
         });
 
         record.put(SERVICE_NAME_TAG, service);
         info = WifiP2pDnsSdServiceInfo.newInstance(instance, service.concat("._tcp"), record);
     }
 
-    public void send(WifiP2pDevice client, Serializable object) {
+    public void send(WifiP2pDevice client, Serializable object, final ResultCallback callback) {
+        boolean successful = false;
+
         for(WifiP2pDeviceInfo clientInfo : clients.keySet()) {
-            if(client.deviceAddress.equals(clientInfo.getMacAddress())) {
-                dataSender.send(object, new InetSocketAddress(clientInfo.getIpAddress(), clientInfo.getPort()), new SocketInitializationCompleteListener() {
+            if(client != null && client.deviceAddress.equals(clientInfo.getMacAddress())) {
+                successful = true;
+
+                objectTransmitter.send(object, new InetSocketAddress(clientInfo.getIpAddress(), clientInfo.getPort()), new SocketInitializationCompleteListener() {
                     @Override
                     public void onSuccess(Socket socket) {
-                        // hurray
+                        callback.onSuccess();
                     }
 
                     @Override
                     public void onFailure() {
-                        // oh no
+                        callback.onFailure();
                     }
                 });
             }
+        }
+
+        if(!successful) {
+            callback.onFailure();
         }
     }
 
@@ -102,19 +128,19 @@ public class Host extends Direct {
             @Override
             public void onSuccess() {
                 Log.d(TAG, "Succeeded to clear local service.");
-                dataReceiver.start(dataCallback, new ServerSocketInitializationCompleteListener() {
+                objectReceiver.start(dataCallback, new ServerSocketInitializationCompleteListener() {
                     @Override
                     public void onSuccess(ServerSocket serverSocket) {
-                        Log.d(TAG, "Succeeded to start data receiver.");
+                        Log.d(TAG, String.format("Succeeded to start object receiver on port %d.", serverSocket.getLocalPort()));
                         thisDeviceInfo.setPort(serverSocket.getLocalPort());
 
                         registrar.start(new ServerSocketInitializationCompleteListener() {
                             @Override
                             public void onSuccess(ServerSocket serverSocket) {
-                                Log.d(TAG, "Succeeded to start registrar.");
+                                Log.d(TAG, String.format("Succeeded to start registrar on port %d.", serverSocket.getLocalPort()));
 
-                                // Reinitialize the service information to reflect the new registration dataPort
-                                record.put(PORT_TAG, Integer.toString(serverSocket.getLocalPort()));
+                                // Reinitialize the service information to reflect the new registration port
+                                record.put(REGISTRAR_PORT_TAG, Integer.toString(serverSocket.getLocalPort()));
                                 info = WifiP2pDnsSdServiceInfo.newInstance(instance, service.concat("._tcp"), record);
 
                                 manager.addLocalService(channel, info, new WifiP2pManager.ActionListener() {
@@ -164,7 +190,7 @@ public class Host extends Direct {
 
                     @Override
                     public void onFailure() {
-                        Log.d(TAG, "Failed to start data receiver.");
+                        Log.d(TAG, "Failed to start object receiver.");
                         listener.onFailure(0);
                     }
                 });
@@ -187,7 +213,7 @@ public class Host extends Direct {
                     serviceBroadcastingThread.interrupt();
                 }
                 registrar.stop();
-                dataReceiver.stop();
+                objectReceiver.stop();
                 removeGroup(listener);
             }
 
@@ -209,5 +235,28 @@ public class Host extends Direct {
             deepClientsClone.add(new WifiP2pDevice(device));
         }
         return deepClientsClone;
+    }
+
+    private void pruneDisconnectedClients() {
+        manager.requestPeers(channel, new WifiP2pManager.PeerListListener() {
+            @Override
+            public void onPeersAvailable(WifiP2pDeviceList peers) {
+                for(WifiP2pDevice peer : peers.getDeviceList()) {
+                    boolean containsClient = false;
+
+                    for (WifiP2pDeviceInfo clientInfo : clients.keySet()) {
+                        if (peer.deviceAddress.equals(clientInfo.getMacAddress())) {
+                            containsClient = true;
+                        }
+
+                        // Prune disconnected client information
+                        if(containsClient == false) {
+                            Log.d(TAG, clientInfo.getMacAddress() + " has disconnected.");
+                            clients.remove(clientInfo);
+                        }
+                    }
+                }
+            }
+        });
     }
 }

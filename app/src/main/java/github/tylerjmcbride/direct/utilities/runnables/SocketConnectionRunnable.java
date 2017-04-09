@@ -8,7 +8,7 @@ import java.net.Socket;
 import java.net.SocketTimeoutException;
 
 import github.tylerjmcbride.direct.Direct;
-import github.tylerjmcbride.direct.listeners.ActionListener;
+import github.tylerjmcbride.direct.listeners.ResultCallback;
 import github.tylerjmcbride.direct.listeners.SocketInitializationCompleteListener;
 
 /**
@@ -17,22 +17,20 @@ import github.tylerjmcbride.direct.listeners.SocketInitializationCompleteListene
  */
 public class SocketConnectionRunnable implements Runnable {
 
+    private static final int DEFAULT_BUFFER_SIZE = 8192;
     private static final int SOCKET_TIMEOUT = 2000;
-    private static final int MAX_SOCKET_ATTEMPTS = 5;
+    private static final int MAX_SOCKET_ATTEMPTS = 15;
 
     private InetSocketAddress address;
-    private int bufferSize;
     private SocketInitializationCompleteListener listener;
 
     /**
      * Attempts to initialize the {@link Socket}.
      * @param address The {@link InetSocketAddress} of the server socket.
-     * @param bufferSize The size of the buffer.
-     * @param listener The {@link ActionListener} to capture the success of a given method call.
+     * @param listener The {@link ResultCallback} to capture the success of a given method call.
      */
-    public SocketConnectionRunnable(InetSocketAddress address, int bufferSize, SocketInitializationCompleteListener listener) {
+    public SocketConnectionRunnable(InetSocketAddress address, SocketInitializationCompleteListener listener) {
         this.address = address;
-        this.bufferSize = bufferSize;
         this.listener = listener;
     }
 
@@ -41,23 +39,29 @@ public class SocketConnectionRunnable implements Runnable {
         connect(MAX_SOCKET_ATTEMPTS);
     }
 
+    /**
+     * Attempts to establish a connection to the respective {@link InetSocketAddress}. Will recurse
+     * until <code>attemptsLeft</code> reaches 0, or a successful connection has been established.
+     *
+     * @param attemptsLeft The number of connection attempts remaining.
+     */
     private void connect(int attemptsLeft) {
-        if(attemptsLeft > 0) {
-            try {
-                Socket socket = new Socket();
-                socket.connect(address, SOCKET_TIMEOUT);
-                socket.setReceiveBufferSize(bufferSize);
-                socket.setSendBufferSize(bufferSize);
-                listener.onSuccess(socket);
-            } catch(SocketTimeoutException e) {
-                Log.d(Direct.TAG, "Failed to connect to " + address + ", will attempt to retry.");
-
-                // Attempt to connect to socket once again
-                connect(--attemptsLeft);
-            } catch (IOException e) {
+        try {
+            Socket socket = new Socket();
+            socket.connect(address, SOCKET_TIMEOUT);
+            socket.setReceiveBufferSize(DEFAULT_BUFFER_SIZE);
+            socket.setSendBufferSize(DEFAULT_BUFFER_SIZE);
+            listener.onSuccess(socket);
+        } catch(SocketTimeoutException e) {
+            // Attempt to connect to socket once again
+            if(attemptsLeft > 0) {
+                Log.d(Direct.TAG, String.format("Failed to connect to %s, will attempt to retry.", address));
+                connect(attemptsLeft - 1);
+            } else {
+                Log.d(Direct.TAG, String.format("Failed to connect to %s.", address));
                 listener.onFailure();
             }
-        } else {
+        } catch (IOException e) {
             listener.onFailure();
         }
     }

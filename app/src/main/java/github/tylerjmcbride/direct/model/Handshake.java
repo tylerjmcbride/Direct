@@ -1,4 +1,4 @@
-package github.tylerjmcbride.direct.model.data;
+package github.tylerjmcbride.direct.model;
 
 import java.io.Serializable;
 

@@ -6,13 +6,15 @@ import java.io.IOException;
 import java.net.ServerSocket;
 
 import github.tylerjmcbride.direct.Direct;
-import github.tylerjmcbride.direct.listeners.ActionListener;
+import github.tylerjmcbride.direct.listeners.ResultCallback;
 import github.tylerjmcbride.direct.listeners.ServerSocketInitializationCompleteListener;
 
 /**
  * Static class for server socket initialization.
  */
 public final class ServerSockets {
+
+    private static final int DEFAULT_BUFFER_SIZE = 8192;
 
     /**
      * Private constructor to enforce static class.
@@ -25,12 +27,11 @@ public final class ServerSockets {
      * Attempts to initialize the {@link ServerSocket}, a random port will be used if the given is port is unavailable.
      * @param port The port for the {@link ServerSocket} to listen on.
      * @param maxServerConnections The maximum number of connections allowed at any given time.
-     * @param bufferSize The size of the buffer.
-     * @param listener The {@link ActionListener} to capture the result of the given method call.
+     * @param listener The {@link ResultCallback} to capture the result of the given method call.
      */
-    public static void initializeServerSocket(final int port, final int maxServerConnections, final int bufferSize, final ServerSocketInitializationCompleteListener listener) {
+    public static void initializeServerSocket(final int port, final int maxServerConnections, final ServerSocketInitializationCompleteListener listener) {
         // Attempt to initialize the server socket on the given port
-        initialize(port, maxServerConnections, bufferSize, new ServerSocketInitializationCompleteListener() {
+        initialize(port, maxServerConnections, DEFAULT_BUFFER_SIZE, new ServerSocketInitializationCompleteListener() {
             @Override
             public void onSuccess(ServerSocket serverSocket) {
                 listener.onSuccess(serverSocket);
@@ -40,7 +41,7 @@ public final class ServerSockets {
             public void onFailure() {
 
                 // Attempt to initialize server socket on a random port
-                initialize(0, maxServerConnections, bufferSize, new ServerSocketInitializationCompleteListener() {
+                initialize(0, maxServerConnections, DEFAULT_BUFFER_SIZE, new ServerSocketInitializationCompleteListener() {
                     @Override
                     public void onSuccess(ServerSocket serverSocket) {
                         listener.onSuccess(serverSocket);
@@ -60,7 +61,7 @@ public final class ServerSockets {
      * @param port The port for the {@link ServerSocket} to listen on.
      * @param maxServerConnections The maximum number of connections allowed at any given time.
      * @param bufferSize The size of the buffer.
-     * @param listener The {@link ActionListener} to capture the result of the given method call.
+     * @param listener The {@link ResultCallback} to capture the result of the given method call.
      */
     private static void initialize(int port, int maxServerConnections, int bufferSize, ServerSocketInitializationCompleteListener listener) {
         try {

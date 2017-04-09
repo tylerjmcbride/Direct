@@ -16,7 +16,6 @@ public class ObjectReceiver {
 
     private static final int DEFAULT_RECEIVER_PORT = 0;
     private static final int MAX_SERVER_CONNECTIONS = 25;
-    private static final int BUFFER_SIZE = 65536;
 
     private ServerSocket serverSocket;
     private Handler handler;
@@ -27,17 +26,17 @@ public class ObjectReceiver {
 
     /**
      * Starts the data receiver.
-     * @param dataCallback The {@link ObjectCallback} to handle received data.
+     * @param objectCallback The {@link ObjectCallback} to handle received objects.
      * @param initializationListener The {@link ServerSocketInitializationCompleteListener} to capture the result of
      *                 the initialization.
      */
-    public void start(final ObjectCallback dataCallback, final ServerSocketInitializationCompleteListener initializationListener) {
-        ServerSockets.initializeServerSocket(DEFAULT_RECEIVER_PORT, MAX_SERVER_CONNECTIONS, BUFFER_SIZE, new ServerSocketInitializationCompleteListener() {
+    public void start(final ObjectCallback objectCallback, final ServerSocketInitializationCompleteListener initializationListener) {
+        ServerSockets.initializeServerSocket(DEFAULT_RECEIVER_PORT, MAX_SERVER_CONNECTIONS, new ServerSocketInitializationCompleteListener() {
             @Override
             public void onSuccess(ServerSocket serverSocket) {
                 Log.d(Direct.TAG, String.format("Succeeded to initialize receiver socket on port %d.", serverSocket.getLocalPort()));
                 ObjectReceiver.this.serverSocket = serverSocket;
-                new Thread(new ObjectReceiverRunnable(serverSocket, handler, dataCallback)).start();
+                new Thread(new ObjectReceiverRunnable(serverSocket, handler, objectCallback)).start();
                 initializationListener.onSuccess(serverSocket);
             }
 
@@ -50,7 +49,8 @@ public class ObjectReceiver {
     }
 
     /**
-     * Stops the data receiver.
+     * Stops the object receiver. Will invoke {@link ServerSocket#close()} which will effectively
+     * kill the {@link Thread} running the {@link github.tylerjmcbride.direct.utilities.runnables.ServerSocketRunnable}.
      */
     public void stop() {
         if(serverSocket != null) {

@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import github.tylerjmcbride.direct.Direct;
 
@@ -15,19 +16,25 @@ import github.tylerjmcbride.direct.Direct;
  */
 public abstract class ServerSocketRunnable implements Runnable {
 
-    protected ExecutorService executor;
+    private ExecutorService executor;
     protected ServerSocket serverSocket;
 
-    public ServerSocketRunnable(ServerSocket serverSocket, ExecutorService executor) {
+    public ServerSocketRunnable(ServerSocket serverSocket) {
         this.serverSocket = serverSocket;
-        this.executor = executor;
+        this.executor = Executors.newFixedThreadPool(5);
     }
 
     @Override
     public void run() {
         try {
             while (!Thread.currentThread().isInterrupted()) {
-                onConnected(serverSocket.accept());
+                final Socket socket = serverSocket.accept();
+                executor.submit(new Runnable() {
+                    @Override
+                    public void run() {
+                        onConnected(socket);
+                    }
+                });
             }
             // Current thread has been interrupted, clean up registration socket
             serverSocket.close();
@@ -39,5 +46,9 @@ public abstract class ServerSocketRunnable implements Runnable {
         executor.shutdownNow();
     }
 
-    public abstract void onConnected(Socket clientSocket);
+    /**
+     * Will be invoked when a connection is established to the {@link ServerSocket}.
+     * @param socket The {@link Socket} that has established connection.
+     */
+    public abstract void onConnected(Socket socket);
 }
