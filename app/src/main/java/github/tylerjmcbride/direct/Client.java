@@ -34,14 +34,12 @@ public class Client extends Direct {
     private ClientRegistrar registrar;
     private WifiP2pDnsSdServiceRequest serviceRequest = null;
     private Map<WifiP2pDevice, Integer> nearbyHostDevices = new HashMap<>();
+
     private WifiP2pDevice hostDevice = null;
     private Integer hostRegistrarPort = null;
     private WifiP2pDeviceInfo hostDeviceInfo = null;
     private ObjectCallback objectCallback;
 
-    /**
-     * Creates a Wi-Fi Direct Client.
-     */
     public Client(Application application, String service, String instance) {
         super(application, service, instance);
         receiver = new DirectBroadcastReceiver(manager, channel) {
@@ -78,18 +76,19 @@ public class Client extends Direct {
                         }
                     });
                 } else {
+                    // Unregister with the host
                     if(hostDevice != null && hostDeviceInfo != null && hostRegistrarPort != null) {
                         final InetSocketAddress hostAddress = new InetSocketAddress(hostDeviceInfo.getIpAddress(), hostRegistrarPort);
 
                         registrar.unregister(hostAddress, new UnregisteredWithServerListener() {
                             @Override
                             public void onSuccess() {
-                                Log.d(TAG, "Succeeded to unregister with the host.");
+                                Log.d(TAG, String.format("Succeeded to unregister with %s.", hostDevice.deviceAddress));
                             }
 
                             @Override
                             public void onFailure() {
-                                Log.d(TAG, "Failed to unregister with the host.");
+                                Log.d(TAG, String.format("Failed to unregister with %s.", hostDevice.deviceAddress));
                             }
                         });
                     }
@@ -113,6 +112,11 @@ public class Client extends Direct {
         setDnsSdResponseListeners();
     }
 
+    /**
+     * Sends the host the given serializable object.
+     * @param object The object to send to the host.
+     * @param callback The callback to capture the result.
+     */
     public void send(Serializable object, final ResultCallback callback) {
         if(hostDevice != null && hostDeviceInfo != null) {
             objectTransmitter.send(object, new InetSocketAddress(hostDeviceInfo.getIpAddress(), hostDeviceInfo.getPort()), new SocketInitializationCompleteListener() {
