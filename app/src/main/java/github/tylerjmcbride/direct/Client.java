@@ -45,22 +45,6 @@ public class Client extends Direct {
         receiver = new DirectBroadcastReceiver(manager, channel) {
             @Override
             protected void connectionChanged(WifiP2pInfo p2pInfo, NetworkInfo networkInfo, WifiP2pGroup p2pGroup) {
-                NetworkInfo.State state = networkInfo.getState();
-
-                if(state.equals(NetworkInfo.State.CONNECTED)) {
-                    Log.d(TAG, "CONNECTED");
-                } else if(state.equals(NetworkInfo.State.CONNECTING)) {
-                    Log.d(TAG, "CONNECTING");
-                } else if(state.equals(NetworkInfo.State.DISCONNECTING)) {
-                    Log.d(TAG, "DISCONNECTING");
-                } else if(state.equals(NetworkInfo.State.DISCONNECTED)) {
-                    Log.d(TAG, "DISCONNECTED");
-                } else if(state.equals(NetworkInfo.State.SUSPENDED)) {
-                    Log.d(TAG, "SUSPENDED");
-                } else if(state.equals(NetworkInfo.State.UNKNOWN)) {
-                    Log.d(TAG, "UNKNOWN");
-                }
-
                 if (hostDevice == null && hostRegistrarPort != null && p2pInfo.groupFormed && networkInfo.isConnected()) {
                     Log.d(TAG, "Succeeded to connect to host.");
                     hostDevice = p2pGroup.getOwner();
