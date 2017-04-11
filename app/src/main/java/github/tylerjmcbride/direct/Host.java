@@ -15,18 +15,19 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import github.tylerjmcbride.direct.callbacks.ResultCallback;
-import github.tylerjmcbride.direct.registration.listeners.HandshakeListener;
-import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
 import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
 import github.tylerjmcbride.direct.registration.HostRegistrar;
+import github.tylerjmcbride.direct.registration.listeners.HandshakeListener;
 import github.tylerjmcbride.direct.sockets.listeners.ServerSocketInitializationCompleteListener;
 import github.tylerjmcbride.direct.sockets.listeners.SocketInitializationCompleteListener;
 import github.tylerjmcbride.direct.transceivers.DirectBroadcastReceiver;
+import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
 
 public class Host extends Direct {
 
@@ -44,7 +45,15 @@ public class Host extends Direct {
             protected void connectionChanged(WifiP2pInfo p2pInfo, NetworkInfo networkInfo, WifiP2pGroup p2pGroup) {
                 // No need to check {@link WifiP2pInfo#isGroupOwner} as this device is dedicated to hosting the service
                 if (p2pInfo.groupFormed && networkInfo.isConnected()) {
-                    pruneDisconnectedClients();
+                    Collection<WifiP2pDevice> clientList = p2pGroup.getClientList();
+
+                    // Remove clients whom no longer are connected
+                    for(WifiP2pDeviceInfo clientInfo : clients.keySet()) {
+                        if(!clientList.contains(clients.get(clientInfo))) {
+                            Log.d(TAG, clientInfo.getMacAddress() + " has disconnected.");
+                            clients.remove(clientInfo);
+                        }
+                    }
                 } else {
                     registrar.stop();
                     objectReceiver.stop();

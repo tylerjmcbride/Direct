@@ -119,7 +119,10 @@ public class Client extends Direct {
     }
 
     /**
-     * Initiate service discovery.
+     * This method will create a new service request instance and send it to the Wi-Fi P2P framework.
+     * If successful, this method will then initiate service discovery. Service discovery is a
+     * process that involves scanning for requested services for the purpose of establishing a
+     * connection to a peer that supports an available service.
      * @param callback The callback.
      */
     public void startDiscovery(final ResultCallback callback) {
@@ -155,7 +158,9 @@ public class Client extends Direct {
     }
 
     /**
-     * Cease service discovery.
+     * This method will remove the service request created in {@link Client#startDiscovery(ResultCallback)},
+     * effectively ceasing service discovery. Note that {@link Client#nearbyHostDevices} will be
+     * cleared.
      * @param callback The callback.
      */
     public void stopDiscovery(final ResultCallback callback) {
