@@ -4,6 +4,7 @@ import android.app.Application;
 import android.net.NetworkInfo;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
+import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
@@ -76,12 +77,18 @@ public class Client extends Direct {
                         }
                     });
                 } else {
+                    Log.d(TAG, "Succeeded to disconnect from host.");
                     hostDevice = null;
                     hostDeviceInfo = null;
                     hostRegistrarPort = null;
                     objectCallback = null;
                     objectReceiver.stop();
                 }
+            }
+
+            @Override
+            protected void peersChanged() {
+                pruneLostHosts();
             }
 
             @Override
@@ -321,6 +328,34 @@ public class Client extends Direct {
                     if (!nearbyHostDevices.keySet().contains(device)) {
                         Log.d(TAG, "Succeeded to retrieve " + device.deviceAddress + " txt record.");
                         nearbyHostDevices.put(device, Integer.valueOf(record.get(REGISTRAR_PORT_TAG)));
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Will compare {@link Client#nearbyHostDevices} to the {@link WifiP2pDeviceList} to unsure that
+     * all nearby hosts are within range. If any of the existing {@link Client#nearbyHostDevices}
+     * are out of range they will be pruned.
+     */
+    private void pruneLostHosts() {
+        manager.requestPeers(channel, new WifiP2pManager.PeerListListener() {
+            @Override
+            public void onPeersAvailable(WifiP2pDeviceList peers) {
+                for(WifiP2pDevice peer : peers.getDeviceList()) {
+                    boolean containsClient = false;
+
+                    for (WifiP2pDevice nearbyHost : nearbyHostDevices.keySet()) {
+                        if (peer.deviceAddress.equals(nearbyHost.deviceAddress)) {
+                            containsClient = true;
+                        }
+
+                        // Prune lost host
+                        if(!containsClient) {
+                            Log.d(TAG, "Nearby host " + nearbyHost.deviceAddress + " has been lost.");
+                            nearbyHostDevices.remove(nearbyHost);
+                        }
                     }
                 }
             }
