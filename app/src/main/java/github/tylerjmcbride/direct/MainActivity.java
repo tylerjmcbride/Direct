@@ -15,6 +15,7 @@ import github.tylerjmcbride.direct.callbacks.ClientCallback;
 import github.tylerjmcbride.direct.callbacks.ConnectionCallback;
 import github.tylerjmcbride.direct.callbacks.DiscoveryCallback;
 import github.tylerjmcbride.direct.callbacks.ResultCallback;
+import github.tylerjmcbride.direct.callbacks.ServiceCallback;
 import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
 
 public class MainActivity extends AppCompatActivity {
@@ -171,6 +172,16 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onDisconnected(WifiP2pDevice clientDevice) {
                         // Client has disconnected
+                    }
+                }, new ServiceCallback() {
+                    @Override
+                    public void onAvailable() {
+                        // The service is now available
+                    }
+
+                    @Override
+                    public void onUnavailable() {
+                        // The service is no longer available
                     }
                 }, new ResultCallback() {
                     @Override
