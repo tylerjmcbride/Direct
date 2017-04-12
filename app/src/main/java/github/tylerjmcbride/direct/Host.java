@@ -1,5 +1,6 @@
 package github.tylerjmcbride.direct;
 
+import android.annotation.TargetApi;
 import android.app.Application;
 import android.net.NetworkInfo;
 import android.net.wifi.p2p.WifiP2pDevice;
@@ -8,6 +9,7 @@ import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
+import android.os.Build;
 import android.util.Log;
 
 import java.io.Serializable;
@@ -153,6 +155,7 @@ public class Host extends Direct {
      * until the framework is notified.
      * @param callback The callback.
      */
+    @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
     public void startService(final ObjectCallback dataCallback, final ClientCallback clientCallback, final ResultCallback callback) {
         manager.clearLocalServices(channel, new WifiP2pManager.ActionListener() {
             @Override
@@ -221,6 +224,7 @@ public class Host extends Direct {
      * framework is notified.
      * @param callback The callback.
      */
+    @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
     public void stopService(final ResultCallback callback) {
         manager.removeLocalService(channel, info, new WifiP2pManager.ActionListener() {
             @Override

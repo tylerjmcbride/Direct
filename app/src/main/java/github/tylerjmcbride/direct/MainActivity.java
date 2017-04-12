@@ -30,6 +30,8 @@ public class MainActivity extends AppCompatActivity {
     private Client client;
     private Host host;
 
+    private static final String TAG = "TAG";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
