@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import github.tylerjmcbride.direct.callbacks.DiscoveryCallback;
 import github.tylerjmcbride.direct.callbacks.ResultCallback;
 import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
 import github.tylerjmcbride.direct.registration.ClientRegistrar;
@@ -40,9 +41,10 @@ public class Client extends Direct {
     private Integer hostRegistrarPort = null;
     private WifiP2pDeviceInfo hostDeviceInfo = null;
     private ObjectCallback objectCallback;
+    private DiscoveryCallback discoveryCallback;
 
-    public Client(Application application, String service, String instance) {
-        super(application, service, instance);
+    public Client(Application application, String service) {
+        super(application, service);
         receiver = new DirectBroadcastReceiver(manager, channel) {
             @Override
             protected void connectionChanged(WifiP2pInfo p2pInfo, NetworkInfo networkInfo, WifiP2pGroup p2pGroup) {
@@ -130,11 +132,13 @@ public class Client extends Direct {
      * If successful, this method will then initiate service discovery. Service discovery is a
      * process that involves scanning for requested services for the purpose of establishing a
      * connection to a peer that supports an available service.
-     * @param callback The callback.
+     * @param discoveryCallback The callback when a new service has been discovered.
+     * @param resultCallback The callback on the success or failure of the request.
      */
-    public void startDiscovery(final ResultCallback callback) {
+    public void startDiscovery(final DiscoveryCallback discoveryCallback, final ResultCallback resultCallback) {
         if(serviceRequest == null) {
             serviceRequest = WifiP2pDnsSdServiceRequest.newInstance();
+            this.discoveryCallback = discoveryCallback;
 
             manager.addServiceRequest(channel, serviceRequest, new WifiP2pManager.ActionListener() {
                 @Override
@@ -144,13 +148,13 @@ public class Client extends Direct {
                         @Override
                         public void onSuccess() {
                             Log.d(TAG, "Succeeded to start service discovery.");
-                            callback.onSuccess();
+                            resultCallback.onSuccess();
                         }
 
                         @Override
                         public void onFailure(int reason) {
                             Log.d(TAG, "Failed to start service discovery.");
-                            callback.onFailure();
+                            resultCallback.onFailure();
                         }
                     });
                 }
@@ -158,14 +162,14 @@ public class Client extends Direct {
                 @Override
                 public void onFailure(int reason) {
                     Log.d(TAG, "Failed to add service request.");
-                    callback.onFailure();
+                    resultCallback.onFailure();
                 }
             });
         }
     }
 
     /**
-     * This method will remove the service request created in {@link Client#startDiscovery(ResultCallback)},
+     * This method will remove the service request created in {@link Client#startDiscovery(DiscoveryCallback, ResultCallback)} )},
      * effectively ceasing service discovery. Note that {@link Client#nearbyHostDevices} will be
      * cleared.
      * @param callback The callback.
@@ -177,6 +181,7 @@ public class Client extends Direct {
                 public void onSuccess() {
                     Log.d(TAG, "Succeeded to remove service request.");
                     serviceRequest = null;
+                    discoveryCallback = null;
                     nearbyHostDevices.clear();
                     manager.stopPeerDiscovery(channel, new WifiP2pManager.ActionListener() {
                         @Override
@@ -328,6 +333,7 @@ public class Client extends Direct {
                     if (!nearbyHostDevices.keySet().contains(device)) {
                         Log.d(TAG, "Succeeded to retrieve " + device.deviceAddress + " txt record.");
                         nearbyHostDevices.put(device, Integer.valueOf(record.get(REGISTRAR_PORT_TAG)));
+                        discoveryCallback.onDiscovered(new WifiP2pDevice(device));
                     }
                 }
             }

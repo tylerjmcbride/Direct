@@ -39,7 +39,7 @@ public class Host extends Direct {
     private Map<WifiP2pDeviceInfo, WifiP2pDevice> clients = new HashMap<>();
 
     public Host(Application application, final String service, final String instance) {
-        super(application, service, instance);
+        super(application, service);
         receiver = new DirectBroadcastReceiver(manager, channel) {
             @Override
             protected void connectionChanged(WifiP2pInfo p2pInfo, NetworkInfo networkInfo, WifiP2pGroup p2pGroup) {

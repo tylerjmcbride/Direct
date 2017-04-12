@@ -46,12 +46,10 @@ public abstract class Direct {
     /**
      * Constructor for the abstract class {@link Direct}.
      * @param application The {@link Application}.
-     * @param instance The name of the instance.
      * @param service The service type.
      */
-    public Direct(Application application, String service, String instance) {
+    public Direct(Application application, String service) {
         this.service = service;
-        this.instance = instance;
 
         this.intentFilter = new IntentFilter();
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);

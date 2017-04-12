@@ -1,7 +1,6 @@
 package github.tylerjmcbride.direct;
 
 import android.net.wifi.p2p.WifiP2pDevice;
-import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -12,6 +11,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
+import github.tylerjmcbride.direct.callbacks.DiscoveryCallback;
 import github.tylerjmcbride.direct.callbacks.ResultCallback;
 import github.tylerjmcbride.direct.registration.model.Handshake;
 import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
@@ -46,23 +46,29 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        client = new Client(getApplication(), "JUKE", Build.MODEL + " " + Build.USER);
-        host = new Host(getApplication(), "JUKE", Build.MODEL + " " + Build.USER);
+        host = new Host(getApplication(), "UNIQUE_SERVICE_TAG", "UNIQUE_INSTANCE_TAG");
+
+        client = new Client(getApplication(), "UNIQUE_SERVICE_TAG");
 
         clientButton = (Button) findViewById(R.id.client);
 
         clientButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                client.startDiscovery(new ResultCallback() {
+                client.startDiscovery(new DiscoveryCallback() {
+                    @Override
+                    public void onDiscovered(WifiP2pDevice hostDevice) {
+                        // New service discovered
+                    }
+                }, new ResultCallback() {
                     @Override
                     public void onSuccess() {
-
+                        // Succeeded to start discovery
                     }
 
                     @Override
                     public void onFailure() {
-
+                        // Failed to start discovery
                     }
                 });
             }
@@ -87,6 +93,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        client.getNearbyHosts();
         clientButtonconnect = (Button) findViewById(R.id.clientconnect);
 
         clientButtonconnect.setOnClickListener(new View.OnClickListener() {
@@ -140,17 +147,17 @@ public class MainActivity extends AppCompatActivity {
                 host.startService(new ObjectCallback() {
                     @Override
                     public void onReceived(Object object) {
-                        Log.d(Direct.TAG, "HOST YOU GOT THE DATA HURRAY!");
+                        // Object received from client
                     }
                 }, new ResultCallback() {
                     @Override
                     public void onSuccess() {
-
+                        // Succeeded to create service
                     }
 
                     @Override
                     public void onFailure() {
-
+                        // Failed to create service
                     }
                 });
             }
