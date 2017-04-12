@@ -95,7 +95,7 @@ public class Client extends Direct {
 
             @Override
             protected void thisDeviceChanged(WifiP2pDevice thisDevice) {
-                thisDevice = new WifiP2pDevice(thisDevice);
+                Client.this.thisDevice = new WifiP2pDevice(thisDevice);
                 thisDeviceInfo.setMacAddress(thisDevice.deviceAddress);
             }
         };

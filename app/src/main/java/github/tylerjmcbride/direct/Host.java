@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import github.tylerjmcbride.direct.callbacks.ClientCallback;
 import github.tylerjmcbride.direct.callbacks.ResultCallback;
 import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
 import github.tylerjmcbride.direct.registration.HostRegistrar;
@@ -35,6 +36,7 @@ public class Host extends Direct {
     private WifiP2pDnsSdServiceInfo info;
     private Map<String, String> record = new HashMap<>();
     private Thread serviceBroadcastingThread;
+    private ClientCallback clientCallback;
 
     private Map<WifiP2pDeviceInfo, WifiP2pDevice> clients = new HashMap<>();
 
@@ -51,7 +53,11 @@ public class Host extends Direct {
                     for(WifiP2pDeviceInfo clientInfo : clients.keySet()) {
                         if(!clientList.contains(clients.get(clientInfo))) {
                             Log.d(TAG, clientInfo.getMacAddress() + " has disconnected.");
-                            clients.remove(clientInfo);
+                            WifiP2pDevice clientDevice = clients.remove(clientInfo);
+
+                            if(clientCallback != null) {
+                                clientCallback.onDisconnected(clientDevice);
+                            }
                         }
                     }
                 } else {
@@ -68,7 +74,7 @@ public class Host extends Direct {
 
             @Override
             protected void thisDeviceChanged(WifiP2pDevice thisDevice) {
-                thisDevice = new WifiP2pDevice(thisDevice);
+                Host.this.thisDevice = new WifiP2pDevice(thisDevice);
                 thisDeviceInfo.setMacAddress(thisDevice.deviceAddress);
             }
         };
@@ -85,6 +91,10 @@ public class Host extends Direct {
                         if(clientDevice != null) {
                             Log.d(TAG, String.format("Succeeded to register client %s.", clientInfo.getMacAddress()));
                             clients.put(clientInfo, clientDevice);
+
+                            if(clientCallback != null) {
+                                clientCallback.onConnected(clientDevice);
+                            }
                         } else {
                             Log.d(TAG, String.format("Failed to register client %s.", clientInfo.getMacAddress()));
                         }
@@ -95,7 +105,11 @@ public class Host extends Direct {
             @Override
             public void onAdieu(WifiP2pDeviceInfo clientInfo) {
                 Log.d(TAG, String.format("Succeeded to unregister client %s.", clientInfo.getMacAddress()));
-                clients.remove(clientInfo);
+                WifiP2pDevice clientDevice = clients.remove(clientInfo);
+
+                if(clientCallback != null) {
+                    clientCallback.onDisconnected(clientDevice);
+                }
             }
         });
 
@@ -139,7 +153,7 @@ public class Host extends Direct {
      * until the framework is notified.
      * @param callback The callback.
      */
-    public void startService(final ObjectCallback dataCallback, final ResultCallback callback) {
+    public void startService(final ObjectCallback dataCallback, final ClientCallback clientCallback, final ResultCallback callback) {
         manager.clearLocalServices(channel, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
@@ -154,6 +168,7 @@ public class Host extends Direct {
                             @Override
                             public void onSuccess(ServerSocket serverSocket) {
                                 Log.d(TAG, String.format("Succeeded to start registrar on port %d.", serverSocket.getLocalPort()));
+                                Host.this.clientCallback = clientCallback;
 
                                 // Reinitialize the service information to reflect the new registration port
                                 record.put(REGISTRAR_PORT_TAG, Integer.toString(serverSocket.getLocalPort()));
@@ -211,6 +226,7 @@ public class Host extends Direct {
             @Override
             public void onSuccess() {
                 Log.d(TAG, "Succeeded to remove local service.");
+                Host.this.clientCallback = null;
                 if(serviceBroadcastingThread != null) {
                     serviceBroadcastingThread.interrupt();
                 }
@@ -257,7 +273,11 @@ public class Host extends Direct {
                         // Prune disconnected client
                         if(!containsClient) {
                             Log.d(TAG, clientInfo.getMacAddress() + " has disconnected.");
-                            clients.remove(clientInfo);
+                            WifiP2pDevice clientDevice = clients.remove(clientInfo);
+
+                            if(clientCallback != null) {
+                                clientCallback.onDisconnected(clientDevice);
+                            }
                         }
                     }
                 }

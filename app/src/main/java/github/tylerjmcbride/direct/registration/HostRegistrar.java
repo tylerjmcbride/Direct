@@ -12,8 +12,8 @@ import java.net.Socket;
 
 import github.tylerjmcbride.direct.Direct;
 import github.tylerjmcbride.direct.Host;
-import github.tylerjmcbride.direct.registration.listeners.HandshakeListener;
 import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
+import github.tylerjmcbride.direct.registration.listeners.HandshakeListener;
 import github.tylerjmcbride.direct.registration.model.Adieu;
 import github.tylerjmcbride.direct.registration.model.Handshake;
 import github.tylerjmcbride.direct.sockets.ServerSockets;

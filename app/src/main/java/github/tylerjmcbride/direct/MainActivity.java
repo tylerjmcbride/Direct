@@ -6,14 +6,14 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.Toast;
 
+import java.io.Serializable;
+
+import github.tylerjmcbride.direct.callbacks.ClientCallback;
 import github.tylerjmcbride.direct.callbacks.DiscoveryCallback;
 import github.tylerjmcbride.direct.callbacks.ResultCallback;
-import github.tylerjmcbride.direct.registration.model.Handshake;
 import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
 
 public class MainActivity extends AppCompatActivity {
@@ -99,24 +99,24 @@ public class MainActivity extends AppCompatActivity {
         clientButtonconnect.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(client.getNearbyHosts().size() > 0) {
-                    client.connect(client.getNearbyHosts().get(0), new ObjectCallback() {
+                WifiP2pDevice hostDevice = new WifiP2pDevice();
+
+                    client.connect(hostDevice, new ObjectCallback() {
                         @Override
                         public void onReceived(Object object) {
-                            Log.d(Direct.TAG, "CLIENT YOU GOT THE DATA HURRAY!");
+                            // Object received from host
                         }
                     }, new ResultCallback() {
                         @Override
                         public void onSuccess() {
-
+                            // Succeeded to request connection
                         }
 
                         @Override
                         public void onFailure() {
-
+                            // Failed to request connection
                         }
                     });
-                }
             }
         });
 
@@ -128,12 +128,12 @@ public class MainActivity extends AppCompatActivity {
                 client.disconnect(new ResultCallback() {
                     @Override
                     public void onSuccess() {
-
+                        // Succeeded to disconnect from the service
                     }
 
                     @Override
                     public void onFailure() {
-
+                        // Failed to disconnect from the service
                     }
                 });
             }
@@ -148,6 +148,16 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onReceived(Object object) {
                         // Object received from client
+                    }
+                }, new ClientCallback() {
+                    @Override
+                    public void onConnected(WifiP2pDevice clientDevice) {
+                        // Client has connected
+                    }
+
+                    @Override
+                    public void onDisconnected(WifiP2pDevice clientDevice) {
+                        // Client has disconnected
                     }
                 }, new ResultCallback() {
                     @Override
@@ -171,12 +181,12 @@ public class MainActivity extends AppCompatActivity {
                 host.stopService(new ResultCallback() {
                     @Override
                     public void onSuccess() {
-
+                        // Succeeded to stop service
                     }
 
                     @Override
                     public void onFailure() {
-
+                        // Succeeded to stop service
                     }
                 });
             }
@@ -187,15 +197,16 @@ public class MainActivity extends AppCompatActivity {
         clientButtonsend.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                client.send(new Handshake("lol", 0), new ResultCallback() {
+                Serializable serializableObject = new String("lol");
+                client.send(serializableObject, new ResultCallback() {
                     @Override
                     public void onSuccess() {
-                        Toast.makeText(getApplicationContext(), "Succeeded Sending Data.", Toast.LENGTH_SHORT).show();
+                        // Succeeded to send object
                     }
 
                     @Override
                     public void onFailure() {
-                        Toast.makeText(getApplicationContext(), "Failed Sending Data.", Toast.LENGTH_SHORT).show();
+                        // Failed to send object
                     }
                 });
             }
@@ -207,16 +218,17 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 if(!host.getRegisteredClients().isEmpty()) {
-                    WifiP2pDevice device = host.getRegisteredClients().get(0);
-                    host.send(device, new Handshake("lol", 0), new ResultCallback() {
+                    Serializable serializableObject = new String("lol");
+                    WifiP2pDevice clientDevice = host.getRegisteredClients().get(0);
+                    host.send(clientDevice, serializableObject, new ResultCallback() {
                         @Override
                         public void onSuccess() {
-                            Toast.makeText(getApplicationContext(), "Succeeded Sending Data.", Toast.LENGTH_SHORT).show();
+                            // Succeeded to send object
                         }
 
                         @Override
                         public void onFailure() {
-                            Toast.makeText(getApplicationContext(), "Failed Sending Data.", Toast.LENGTH_SHORT).show();
+                            // Failed to send object
                         }
                     });
                 }
