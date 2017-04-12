@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import github.tylerjmcbride.direct.callbacks.ConnectionCallback;
 import github.tylerjmcbride.direct.callbacks.DiscoveryCallback;
 import github.tylerjmcbride.direct.callbacks.ResultCallback;
 import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
@@ -40,8 +41,10 @@ public class Client extends Direct {
     private WifiP2pDevice hostDevice = null;
     private Integer hostRegistrarPort = null;
     private WifiP2pDeviceInfo hostDeviceInfo = null;
+
     private ObjectCallback objectCallback;
     private DiscoveryCallback discoveryCallback;
+    private ConnectionCallback connectionCallback;
 
     public Client(Application application, String service) {
         super(application, service);
@@ -64,6 +67,10 @@ public class Client extends Direct {
                                 public void onSuccess(WifiP2pDeviceInfo info) {
                                     Log.d(TAG, "Succeeded to register with " + info.getMacAddress() + ".");
                                     hostDeviceInfo = info;
+
+                                    if(connectionCallback != null) {
+                                        connectionCallback.onConnected();
+                                    }
                                 }
 
                                 @Override
@@ -80,10 +87,15 @@ public class Client extends Direct {
                     });
                 } else {
                     Log.d(TAG, "Succeeded to disconnect from host.");
+                    if(connectionCallback != null) {
+                        connectionCallback.onDisconnected();
+                    }
+
                     hostDevice = null;
                     hostDeviceInfo = null;
                     hostRegistrarPort = null;
                     objectCallback = null;
+                    connectionCallback = null;
                     objectReceiver.stop();
                 }
             }
@@ -213,10 +225,11 @@ public class Client extends Direct {
      * @param hostDevice The specified hostDevice.
      * @param callback The callback.
      */
-    public void connect(final WifiP2pDevice hostDevice, ObjectCallback dataCallback, final ResultCallback callback) {
+    public void connect(final WifiP2pDevice hostDevice, ObjectCallback dataCallback, final ConnectionCallback connectionCallback, final ResultCallback callback) {
         if(hostDevice != null && hostIsNearby(hostDevice)) {
             this.hostRegistrarPort = getHostRegistrationPort(hostDevice);
             this.objectCallback = dataCallback;
+            this.connectionCallback = connectionCallback;
 
             WifiP2pConfig config = new WifiP2pConfig();
             config.deviceAddress = hostDevice.deviceAddress;

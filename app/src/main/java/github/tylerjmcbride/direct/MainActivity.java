@@ -12,6 +12,7 @@ import android.widget.Button;
 import java.io.Serializable;
 
 import github.tylerjmcbride.direct.callbacks.ClientCallback;
+import github.tylerjmcbride.direct.callbacks.ConnectionCallback;
 import github.tylerjmcbride.direct.callbacks.DiscoveryCallback;
 import github.tylerjmcbride.direct.callbacks.ResultCallback;
 import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
@@ -101,24 +102,34 @@ public class MainActivity extends AppCompatActivity {
         clientButtonconnect.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                WifiP2pDevice hostDevice = new WifiP2pDevice();
+                WifiP2pDevice hostDevice = client.getNearbyHosts().get(0);
 
-                    client.connect(hostDevice, new ObjectCallback() {
-                        @Override
-                        public void onReceived(Object object) {
-                            // Object received from host
-                        }
-                    }, new ResultCallback() {
-                        @Override
-                        public void onSuccess() {
-                            // Succeeded to request connection
-                        }
+                client.connect(hostDevice, new ObjectCallback() {
+                    @Override
+                    public void onReceived(Object object) {
+                        // Object received from host
+                    }
+                }, new ConnectionCallback() {
+                    @Override
+                    public void onConnected() {
+                        // Connected to host
+                    }
 
-                        @Override
-                        public void onFailure() {
-                            // Failed to request connection
-                        }
-                    });
+                    @Override
+                    public void onDisconnected() {
+                        // Disconnected with host, perhaps the host discontinued the service?
+                    }
+                }, new ResultCallback() {
+                    @Override
+                    public void onSuccess() {
+                        // Succeeded to request connection
+                    }
+
+                    @Override
+                    public void onFailure() {
+                        // Failed to request connection
+                    }
+                });
             }
         });
 
