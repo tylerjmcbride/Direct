@@ -68,7 +68,7 @@ public class Host extends Direct {
                     }
                 } else {
                     if(serviceCallback != null) {
-                        serviceCallback.onP2PGroupDisbanded();
+                        serviceCallback.onServiceStopped();
                     }
 
                     clientCallback = null;

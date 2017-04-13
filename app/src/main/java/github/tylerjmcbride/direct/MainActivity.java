@@ -176,7 +176,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }, new ServiceCallback() {
                     @Override
-                    public void onP2PGroupDisbanded() {
+                    public void onServiceStopped() {
                         Log.d(TAG, "The service is no longer available");
                     }
                 }, new ResultCallback() {
