@@ -42,9 +42,9 @@ public class Client extends Direct {
     private Integer hostRegistrarPort = null;
     private WifiP2pDeviceInfo hostDeviceInfo = null;
 
-    private ObjectCallback objectCallback;
-    private DiscoveryCallback discoveryCallback;
-    private ConnectionCallback connectionCallback;
+    private ObjectCallback objectCallback = null;
+    private DiscoveryCallback discoveryCallback = null;
+    private ConnectionCallback connectionCallback = null;
 
     public Client(Application application, String service) {
         super(application, service);
@@ -265,18 +265,49 @@ public class Client extends Direct {
                 @Override
                 public void onSuccess() {
                     Log.d(TAG, String.format("Succeeded to unregister with %s.", hostMacAddress));
-                    removeGroup(callback);
+                    removeGroup(new ResultCallback() {
+                        @Override
+                        public void onSuccess() {
+                            callback.onSuccess();
+                        }
+
+                        @Override
+                        public void onFailure() {
+                            callback.onFailure();
+                        }
+                    });
                 }
 
                 @Override
                 public void onFailure() {
                     Log.d(TAG, String.format("Failed to unregister with %s.", hostMacAddress));
-                    removeGroup(callback);
+                    removeGroup(new ResultCallback() {
+                        @Override
+                        public void onSuccess() {
+                            callback.onSuccess();
+                        }
+
+                        @Override
+                        public void onFailure() {
+                            callback.onFailure();
+                        }
+                    });
                 }
             });
         } else {
             Log.d(TAG, "Not currently registered.");
-            removeGroup(callback);
+            removeGroup(new ResultCallback() {
+                @Override
+                public void onSuccess() {
+                    callback.onSuccess();
+                }
+
+                @Override
+                public void onFailure() {
+                    callback.onFailure();
+                }
+            });
+            callback.onSuccess();
         }
     }
 

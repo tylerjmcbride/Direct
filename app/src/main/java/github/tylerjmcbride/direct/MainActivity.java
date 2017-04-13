@@ -6,6 +6,7 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 
@@ -62,17 +63,17 @@ public class MainActivity extends AppCompatActivity {
                 client.startDiscovery(new DiscoveryCallback() {
                     @Override
                     public void onDiscovered(WifiP2pDevice hostDevice) {
-                        // New service discovered
+                        Log.d(TAG, "New service discovered");
                     }
                 }, new ResultCallback() {
                     @Override
                     public void onSuccess() {
-                        // Succeeded to start discovery
+                        Log.d(TAG, "Succeeded to start discovery");
                     }
 
                     @Override
                     public void onFailure() {
-                        // Failed to start discovery
+                        Log.d(TAG, "Failed to start discovery");
                     }
                 });
             }
@@ -86,12 +87,12 @@ public class MainActivity extends AppCompatActivity {
                 client.stopDiscovery(new ResultCallback() {
                     @Override
                     public void onSuccess() {
-
+                        Log.d(TAG, "Succeeded to stop discovery");
                     }
 
                     @Override
                     public void onFailure() {
-
+                        Log.d(TAG, "Failed to stop discovery");
                     }
                 });
             }
@@ -108,27 +109,27 @@ public class MainActivity extends AppCompatActivity {
                 client.connect(hostDevice, new ObjectCallback() {
                     @Override
                     public void onReceived(Object object) {
-                        // Object received from host
+                        Log.d(TAG, "Object received from host");
                     }
                 }, new ConnectionCallback() {
                     @Override
                     public void onConnected() {
-                        // Connected to host
+                        Log.d(TAG, "Connected to host");
                     }
 
                     @Override
                     public void onDisconnected() {
-                        // Disconnected with host, perhaps the host discontinued the service?
+                        Log.d(TAG, "Disconnected with host, perhaps the host discontinued the service?");
                     }
                 }, new ResultCallback() {
                     @Override
                     public void onSuccess() {
-                        // Succeeded to request connection
+                        Log.d(TAG, "Succeeded to request connection");
                     }
 
                     @Override
                     public void onFailure() {
-                        // Failed to request connection
+                        Log.d(TAG, "Failed to request connection");
                     }
                 });
             }
@@ -142,12 +143,12 @@ public class MainActivity extends AppCompatActivity {
                 client.disconnect(new ResultCallback() {
                     @Override
                     public void onSuccess() {
-                        // Succeeded to disconnect from the service
+                        Log.d(TAG, "Succeeded to disconnect from the service");
                     }
 
                     @Override
                     public void onFailure() {
-                        // Failed to disconnect from the service
+                        Log.d(TAG, "Failed to disconnect from the service");
                     }
                 });
             }
@@ -161,37 +162,32 @@ public class MainActivity extends AppCompatActivity {
                 host.startService(new ObjectCallback() {
                     @Override
                     public void onReceived(Object object) {
-                        // Object received from client
+                        Log.d(TAG, "Object received from client");
                     }
                 }, new ClientCallback() {
                     @Override
                     public void onConnected(WifiP2pDevice clientDevice) {
-                        // Client has connected
+                        Log.d(TAG, "Client has connected");
                     }
 
                     @Override
                     public void onDisconnected(WifiP2pDevice clientDevice) {
-                        // Client has disconnected
+                        Log.d(TAG, "Client has disconnected");
                     }
                 }, new ServiceCallback() {
                     @Override
-                    public void onAvailable() {
-                        // The service is now available
-                    }
-
-                    @Override
-                    public void onUnavailable() {
-                        // The service is no longer available
+                    public void onP2PGroupDisbanded() {
+                        Log.d(TAG, "The service is no longer available");
                     }
                 }, new ResultCallback() {
                     @Override
                     public void onSuccess() {
-                        // Succeeded to create service
+                        Log.d(TAG, "Succeeded to create service");
                     }
 
                     @Override
                     public void onFailure() {
-                        // Failed to create service
+                        Log.d(TAG, "Failed to create service");
                     }
                 });
             }
@@ -205,12 +201,12 @@ public class MainActivity extends AppCompatActivity {
                 host.stopService(new ResultCallback() {
                     @Override
                     public void onSuccess() {
-                        // Succeeded to stop service
+                        Log.d(TAG, "Succeeded to stop service");
                     }
 
                     @Override
                     public void onFailure() {
-                        // Succeeded to stop service
+                        Log.d(TAG, "Succeeded to stop service");
                     }
                 });
             }
@@ -225,12 +221,12 @@ public class MainActivity extends AppCompatActivity {
                 client.send(serializableObject, new ResultCallback() {
                     @Override
                     public void onSuccess() {
-                        // Succeeded to send object
+                        Log.d(TAG, "Succeeded to send object");
                     }
 
                     @Override
                     public void onFailure() {
-                        // Failed to send object
+                        Log.d(TAG, "Failed to send object");
                     }
                 });
             }
@@ -247,12 +243,12 @@ public class MainActivity extends AppCompatActivity {
                     host.send(clientDevice, serializableObject, new ResultCallback() {
                         @Override
                         public void onSuccess() {
-                            // Succeeded to send object
+                            Log.d(TAG, "Succeeded to send object");
                         }
 
                         @Override
                         public void onFailure() {
-                            // Failed to send object
+                            Log.d(TAG, "Failed to send object");
                         }
                     });
                 }

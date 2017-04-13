@@ -35,7 +35,6 @@ public abstract class Direct {
     protected Handler handler;
 
     protected String service;
-    protected String instance;
 
     protected ObjectTransmitter objectTransmitter;
     protected ObjectReceiver objectReceiver;
@@ -109,14 +108,15 @@ public abstract class Direct {
                             @Override
                             public void onSuccess() {
                                 Log.d(TAG, "Succeeded to remove persistent group.");
+                                callback.onSuccess();
                             }
 
                             @Override
                             public void onFailure() {
                                 Log.d(TAG, "Failed to remove persistent group.");
+                                callback.onFailure();
                             }
                         });
-                        callback.onSuccess();
                     }
 
                     @Override

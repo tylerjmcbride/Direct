@@ -1,6 +1,5 @@
 package github.tylerjmcbride.direct;
 
-import android.annotation.TargetApi;
 import android.app.Application;
 import android.net.NetworkInfo;
 import android.net.wifi.p2p.WifiP2pDevice;
@@ -9,7 +8,6 @@ import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
-import android.os.Build;
 import android.util.Log;
 
 import java.io.Serializable;
@@ -35,8 +33,9 @@ import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
 
 public class Host extends Direct {
 
+    private String instance;
     private HostRegistrar registrar;
-    private WifiP2pDnsSdServiceInfo info;
+    private WifiP2pDnsSdServiceInfo serviceInfo;
     private Map<String, String> record = new HashMap<>();
     private Thread serviceBroadcastingThread;
 
@@ -47,15 +46,14 @@ public class Host extends Direct {
 
     public Host(Application application, final String service, final String instance) {
         super(application, service);
+        this.instance = instance;
+        record.put(SERVICE_NAME_TAG, service);
+
         receiver = new DirectBroadcastReceiver(manager, channel) {
             @Override
             protected void connectionChanged(WifiP2pInfo p2pInfo, NetworkInfo networkInfo, WifiP2pGroup p2pGroup) {
                 // No need to check {@link WifiP2pInfo#isGroupOwner} as this device is dedicated to hosting the service
-                if (p2pInfo.groupFormed && networkInfo.isConnected()) {
-                    if(serviceCallback != null) {
-                        serviceCallback.onAvailable();
-                    }
-
+                if (p2pInfo.groupFormed) {
                     // Remove clients whom no longer are connected
                     Collection<WifiP2pDevice> clientList = p2pGroup.getClientList();
                     for(WifiP2pDeviceInfo clientInfo : clients.keySet()) {
@@ -70,7 +68,7 @@ public class Host extends Direct {
                     }
                 } else {
                     if(serviceCallback != null) {
-                        serviceCallback.onUnavailable();
+                        serviceCallback.onP2PGroupDisbanded();
                     }
 
                     clientCallback = null;
@@ -126,9 +124,6 @@ public class Host extends Direct {
                 }
             }
         });
-
-        record.put(SERVICE_NAME_TAG, service);
-        info = WifiP2pDnsSdServiceInfo.newInstance(instance, service.concat("._tcp"), record);
     }
 
     /**
@@ -167,12 +162,11 @@ public class Host extends Direct {
      * until the framework is notified.
      * @param callback The callback.
      */
-    @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
     public void startService(final ObjectCallback dataCallback, final ClientCallback clientCallback, final ServiceCallback serviceCallback, final ResultCallback callback) {
+        // Clear any previously existing service
         manager.clearLocalServices(channel, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
-                Log.d(TAG, "Succeeded to clear local service.");
                 objectReceiver.start(dataCallback, new ServerSocketInitializationCompleteListener() {
                     @Override
                     public void onSuccess(ServerSocket serverSocket) {
@@ -188,12 +182,11 @@ public class Host extends Direct {
 
                                 // Reinitialize the service information to reflect the new registration port
                                 record.put(REGISTRAR_PORT_TAG, Integer.toString(serverSocket.getLocalPort()));
-                                info = WifiP2pDnsSdServiceInfo.newInstance(instance, service.concat("._tcp"), record);
+                                serviceInfo = WifiP2pDnsSdServiceInfo.newInstance(instance, service.concat("._tcp"), record);
 
-                                manager.addLocalService(channel, info, new WifiP2pManager.ActionListener() {
+                                manager.addLocalService(channel, serviceInfo, new WifiP2pManager.ActionListener() {
                                     @Override
                                     public void onSuccess() {
-                                        Log.d(TAG, "Succeeded to add local service.");
                                         serviceBroadcastingThread = new Thread(new ServiceBroadcastingRunnable());
                                         serviceBroadcastingThread.start();
                                         callback.onSuccess();
@@ -202,7 +195,7 @@ public class Host extends Direct {
                                     @Override
                                     public void onFailure(int reason) {
                                         Log.d(TAG, "Failed to add local service.");
-                                        callback.onFailure();
+                                    callback.onFailure();
                                     }
                                 });
                             }
@@ -225,33 +218,41 @@ public class Host extends Direct {
 
             @Override
             public void onFailure(int reason) {
-                Log.d(TAG, "Failed to clear local services.");
                 callback.onFailure();
             }
         });
     }
 
     /**
-     * Removes the registered local service effectively stopping the service; however, this is only
-     * a request to remove a local service, the service will not officially be removed until the
-     * framework is notified.
+     * If a local service exists, this method will remove said service effectively stopping the
+     * service; however, this is only a request to remove a local service, the service will not
+     * officially be removed until the framework is notified.
      * @param callback The callback.
      */
-    @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
     public void stopService(final ResultCallback callback) {
-        manager.removeLocalService(channel, info, new WifiP2pManager.ActionListener() {
+        manager.clearLocalServices(channel, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
-                Log.d(TAG, "Succeeded to remove local service.");
-                if(serviceBroadcastingThread != null) {
+                Log.d(TAG, "Succeeded to clear local services.");
+                if (serviceBroadcastingThread != null) {
                     serviceBroadcastingThread.interrupt();
                 }
-                removeGroup(callback);
+                removeGroup(new ResultCallback() {
+                    @Override
+                    public void onSuccess() {
+                        callback.onSuccess();
+                    }
+
+                    @Override
+                    public void onFailure() {
+                        callback.onFailure();
+                    }
+                });
             }
 
             @Override
             public void onFailure(int reason) {
-                Log.d(TAG, "Failed to remove local service.");
+                Log.d(TAG, "Failed to clear local services.");
                 callback.onFailure();
             }
         });
