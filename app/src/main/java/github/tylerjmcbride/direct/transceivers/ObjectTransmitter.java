@@ -34,9 +34,9 @@ public class ObjectTransmitter {
     public void send(final Serializable object, InetSocketAddress address, final SocketInitializationCompleteListener listener) {
         executor.submit(new SocketConnectionRunnable(address, new SocketInitializationCompleteListener() {
             @Override
-            public void onSuccess(final Socket hostSocket) {
+            public void onSuccess(final Socket socket) {
                 try {
-                    ObjectOutputStream outputStream = new ObjectOutputStream(new BufferedOutputStream(hostSocket.getOutputStream()));
+                    ObjectOutputStream outputStream = new ObjectOutputStream(new BufferedOutputStream(socket.getOutputStream()));
                     outputStream.writeObject(object);
                     outputStream.flush();
                     outputStream.close();
@@ -44,10 +44,14 @@ public class ObjectTransmitter {
                 } catch (IOException ex) {
                     Log.e(Direct.TAG, "Failed to send object.");
                 } finally {
-                    try {
-                        hostSocket.close();
-                    } catch (IOException ex) {
-                        Log.e(Direct.TAG, "Failed to close transmitter socket.");
+                    if (socket != null) {
+                        if (socket.isConnected()) {
+                            try {
+                                socket.close();
+                            } catch (IOException e) {
+                                Log.e(Direct.TAG, "Failed to close socket.");
+                            }
+                        }
                     }
                 }
             }
