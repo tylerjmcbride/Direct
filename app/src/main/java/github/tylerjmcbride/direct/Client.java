@@ -2,6 +2,7 @@ package github.tylerjmcbride.direct;
 
 import android.app.Application;
 import android.net.NetworkInfo;
+import android.net.wifi.WpsInfo;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
@@ -51,7 +52,7 @@ public class Client extends Direct {
         receiver = new DirectBroadcastReceiver(manager, channel) {
             @Override
             protected void connectionChanged(WifiP2pInfo p2pInfo, NetworkInfo networkInfo, WifiP2pGroup p2pGroup) {
-                if (hostDevice == null && hostRegistrarPort != null && p2pInfo.groupFormed && networkInfo.isConnected()) {
+                if (hostDevice == null && hostRegistrarPort != null && networkInfo.isConnected()) {
                     Log.d(TAG, "Succeeded to connect to host.");
                     hostDevice = p2pGroup.getOwner();
                     final InetSocketAddress hostAddress = new InetSocketAddress(p2pInfo.groupOwnerAddress.getHostAddress(), hostRegistrarPort);
@@ -86,7 +87,7 @@ public class Client extends Direct {
                         }
                     });
                 } else {
-                    Log.d(TAG, "Succeeded to disconnect from host.");
+                    Log.d(TAG, "Not connected to a host.");
                     if(connectionCallback != null) {
                         connectionCallback.onDisconnected();
                     }
@@ -233,20 +234,24 @@ public class Client extends Direct {
 
             WifiP2pConfig config = new WifiP2pConfig();
             config.deviceAddress = hostDevice.deviceAddress;
+            config.wps.setup = WpsInfo.PBC;
+            config.groupOwnerIntent = 0;
+
             manager.connect(channel, config, new WifiP2pManager.ActionListener() {
                 @Override
                 public void onSuccess() {
+                    Log.d(TAG, "Succeeded to request connection.");
                     callback.onSuccess();
                 }
 
                 @Override
                 public void onFailure(int reason) {
-                    Log.d(TAG, String.format("Failed to connect to %s.", hostDevice.deviceAddress));
+                    Log.d(TAG, String.format("Failed to request connection to %s.", hostDevice.deviceAddress));
                     callback.onFailure();
                 }
             });
         } else {
-            Log.d(TAG, "Failed to connect, device is either null or out of range.");
+            Log.d(TAG, "Failed to request connection, the device is either null or out of range.");
             callback.onFailure();
         }
     }
@@ -410,5 +415,17 @@ public class Client extends Direct {
                 }
             }
         });
+    }
+
+    /**
+     * If this instance is garbage collected, attempt to end an existing connection.
+     * @throws Throwable Throws any given exception.
+     */
+    @Override
+    protected void finalize() throws Throwable {
+        super.finalize();
+        if(manager != null && channel != null) {
+            manager.removeGroup(channel, null);
+        }
     }
 }

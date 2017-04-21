@@ -187,6 +187,7 @@ public class Host extends Direct {
                                 manager.addLocalService(channel, serviceInfo, new WifiP2pManager.ActionListener() {
                                     @Override
                                     public void onSuccess() {
+                                        Log.d(TAG, "Succeeded to add local service.");
                                         serviceBroadcastingThread = new Thread(new ServiceBroadcastingRunnable());
                                         serviceBroadcastingThread.start();
                                         callback.onSuccess();
@@ -195,7 +196,7 @@ public class Host extends Direct {
                                     @Override
                                     public void onFailure(int reason) {
                                         Log.d(TAG, "Failed to add local service.");
-                                    callback.onFailure();
+                                        callback.onFailure();
                                     }
                                 });
                             }
@@ -230,10 +231,10 @@ public class Host extends Direct {
      * @param callback The callback.
      */
     public void stopService(final ResultCallback callback) {
-        manager.clearLocalServices(channel, new WifiP2pManager.ActionListener() {
+        manager.removeLocalService(channel, serviceInfo, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
-                Log.d(TAG, "Succeeded to clear local services.");
+                Log.d(TAG, "Succeeded to remove local service.");
                 if (serviceBroadcastingThread != null) {
                     serviceBroadcastingThread.interrupt();
                 }
@@ -252,7 +253,6 @@ public class Host extends Direct {
 
             @Override
             public void onFailure(int reason) {
-                Log.d(TAG, "Failed to clear local services.");
                 callback.onFailure();
             }
         });
@@ -328,6 +328,18 @@ public class Host extends Direct {
                     Thread.currentThread().interrupt();
                 }
             }
+        }
+    }
+
+    /**
+     * If this instance is garbage collected, attempt to end the service.
+     * @throws Throwable Throws any given exception.
+     */
+    @Override
+    protected void finalize() throws Throwable {
+        super.finalize();
+        if(manager != null && channel != null) {
+            manager.clearLocalServices(channel, null);
         }
     }
 }

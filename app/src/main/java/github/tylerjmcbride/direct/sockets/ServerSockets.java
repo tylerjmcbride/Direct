@@ -1,5 +1,6 @@
 package github.tylerjmcbride.direct.sockets;
 
+import android.os.Handler;
 import android.util.Log;
 
 import java.io.IOException;
@@ -29,31 +30,51 @@ public final class ServerSockets {
      * @param maxServerConnections The maximum number of connections allowed at any given time.
      * @param listener The {@link ResultCallback} to capture the result of the given method call.
      */
-    public static void initializeServerSocket(final int port, final int maxServerConnections, final ServerSocketInitializationCompleteListener listener) {
+    public static void initializeServerSocket(final int port, final int maxServerConnections, final Handler handler, final ServerSocketInitializationCompleteListener listener) {
         // Attempt to initialize the server socket on the given port
-        initialize(port, maxServerConnections, DEFAULT_BUFFER_SIZE, new ServerSocketInitializationCompleteListener() {
+        new Thread(new Runnable() {
             @Override
-            public void onSuccess(ServerSocket serverSocket) {
-                listener.onSuccess(serverSocket);
-            }
-
-            @Override
-            public void onFailure() {
-
-                // Attempt to initialize server socket on a random port
-                initialize(0, maxServerConnections, DEFAULT_BUFFER_SIZE, new ServerSocketInitializationCompleteListener() {
+            public void run() {
+                initialize(port, maxServerConnections, DEFAULT_BUFFER_SIZE, new ServerSocketInitializationCompleteListener() {
                     @Override
-                    public void onSuccess(ServerSocket serverSocket) {
-                        listener.onSuccess(serverSocket);
+                    public void onSuccess(final ServerSocket serverSocket) {
+                        handler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                listener.onSuccess(serverSocket);
+                            }
+                        });
                     }
 
                     @Override
                     public void onFailure() {
-                        listener.onFailure();
+
+                        // Attempt to initialize server socket on a random port
+                        initialize(0, maxServerConnections, DEFAULT_BUFFER_SIZE, new ServerSocketInitializationCompleteListener() {
+                            @Override
+                            public void onSuccess(final ServerSocket serverSocket) {
+                                handler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        listener.onSuccess(serverSocket);
+                                    }
+                                });
+                            }
+
+                            @Override
+                            public void onFailure() {
+                                handler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        listener.onFailure();
+                                    }
+                                });
+                            }
+                        });
                     }
                 });
             }
-        });
+        }).start();
     }
 
     /**

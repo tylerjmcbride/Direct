@@ -9,6 +9,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import github.tylerjmcbride.direct.Direct;
 import github.tylerjmcbride.direct.Host;
@@ -28,6 +30,8 @@ public class HostRegistrar {
     private static final int DEFAULT_REGISTRATION_PORT = 37500;
     private static final int MAX_SERVER_CONNECTIONS = 25;
 
+    private ExecutorService executor = Executors.newSingleThreadExecutor();
+
     private Host host;
     private Handler handler;
     private ServerSocket serverSocket;
@@ -45,7 +49,7 @@ public class HostRegistrar {
      *                 the initialization.
      */
     public void start(final ServerSocketInitializationCompleteListener initializationCompleteListener) {
-        ServerSockets.initializeServerSocket(DEFAULT_REGISTRATION_PORT, MAX_SERVER_CONNECTIONS, new ServerSocketInitializationCompleteListener() {
+        ServerSockets.initializeServerSocket(DEFAULT_REGISTRATION_PORT, MAX_SERVER_CONNECTIONS, handler, new ServerSocketInitializationCompleteListener() {
             @Override
             public void onSuccess(ServerSocket serverSocket) {
                 Log.d(Direct.TAG, String.format("Succeeded to initialize registration socket on port %d.", serverSocket.getLocalPort()));

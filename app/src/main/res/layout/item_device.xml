@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="30dp">
+        <TextView
+            android:textColor="#000"
+            android:id="@+id/device_name"
+            android:layout_height="wrap_content"
+            android:layout_width="0dp"
+            android:text="Device Name"
+            android:layout_weight="1"/>
+        <TextView
+            android:textColor="#000"
+            android:id="@+id/device_address"
+            android:layout_height="wrap_content"
+            android:layout_width="0dp"
+            android:text="Device Address"
+            android:layout_weight="1"/>
+    </LinearLayout>
+</LinearLayout>

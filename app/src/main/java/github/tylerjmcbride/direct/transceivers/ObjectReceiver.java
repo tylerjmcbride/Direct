@@ -31,7 +31,7 @@ public class ObjectReceiver {
      *                 the initialization.
      */
     public void start(final ObjectCallback objectCallback, final ServerSocketInitializationCompleteListener initializationListener) {
-        ServerSockets.initializeServerSocket(DEFAULT_RECEIVER_PORT, MAX_SERVER_CONNECTIONS, new ServerSocketInitializationCompleteListener() {
+        ServerSockets.initializeServerSocket(DEFAULT_RECEIVER_PORT, MAX_SERVER_CONNECTIONS, handler, new ServerSocketInitializationCompleteListener() {
             @Override
             public void onSuccess(ServerSocket serverSocket) {
                 Log.d(Direct.TAG, String.format("Succeeded to initialize receiver socket on port %d.", serverSocket.getLocalPort()));

@@ -33,6 +33,7 @@ public abstract class Direct {
     protected BroadcastReceiver receiver;
     protected IntentFilter intentFilter;
     protected Handler handler;
+    protected Context context;
 
     protected String service;
 
@@ -57,7 +58,7 @@ public abstract class Direct {
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
         intentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
 
-        final Context context = application.getApplicationContext();
+        this.context = application.getApplicationContext();
         final Looper looper = context.getMainLooper();
 
         this.handler = new Handler(looper);
@@ -157,6 +158,17 @@ public abstract class Direct {
         } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
             Log.e(TAG, "Could not delete persistent group");
             callback.onFailure();
+        }
+    }
+
+    /**
+     * If this instance is garbage collected, unregister the receiver.
+     * @throws Throwable Throws any given exception.
+     */
+    @Override
+    protected void finalize() throws Throwable {
+        if(context != null) {
+            context.unregisterReceiver(receiver);
         }
     }
 }
