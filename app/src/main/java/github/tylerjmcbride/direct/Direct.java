@@ -110,17 +110,25 @@ public abstract class Direct {
                         @Override
                         public void onSuccess() {
                             Log.d(TAG, "Succeeded to remove group.");
-                            deletePersistentGroup(group, new ResultCallback() {
-                                @Override
-                                public void onSuccess() {
-                                    callback.onSuccess();
-                                }
 
-                                @Override
-                                public void onFailure() {
-                                    callback.onFailure();
-                                }
-                            });
+                            try {
+                                deletePersistentGroup(group, new ActionListener() {
+                                    @Override
+                                    public void onSuccess() {
+                                        Log.d(TAG, "Succeeded to delete persistent group.");
+                                        callback.onSuccess();
+                                    }
+
+                                    @Override
+                                    public void onFailure(int reason) {
+                                        Log.d(TAG, "Failed to delete persistent group.");
+                                        callback.onFailure();
+                                    }
+                                });
+                            } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
+                                Log.e(TAG, "Failed to delete persistent group");
+                                callback.onFailure();
+                            }
                         }
 
                         @Override
@@ -142,31 +150,13 @@ public abstract class Direct {
      *
      * @see <a href="http://stackoverflow.com/questions/23653707/forgetting-old-wifi-direct-connections"></a>
      * @param wifiP2pGroup The respective {@link WifiP2pGroup}.
-     * @param callback Invoked upon the success or failure of the request.
+     * @param listener Invoked upon the success or failure of the request.
      */
-    protected void deletePersistentGroup(WifiP2pGroup wifiP2pGroup, final ResultCallback callback) {
-        try {
-            Method getNetworkId = WifiP2pGroup.class.getMethod("getNetworkId");
-            Integer networkId = (Integer) getNetworkId.invoke(wifiP2pGroup);
-            Method deletePersistentGroup = WifiP2pManager.class.getMethod("deletePersistentGroup",
-                    WifiP2pManager.Channel.class, int.class, ActionListener.class);
-            deletePersistentGroup.invoke(manager, channel, networkId, new ActionListener() {
-                @Override
-                public void onSuccess() {
-                    Log.d(TAG, "Succeeded to delete persistent group.");
-                    callback.onSuccess();
-                }
-
-                @Override
-                public void onFailure(int reason) {
-                    Log.d(TAG, "Failed to delete persistent group");
-                    callback.onFailure();
-                }
-            });
-        } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
-            Log.e(TAG, "Could not delete persistent group");
-            callback.onFailure();
-        }
+    protected void deletePersistentGroup(WifiP2pGroup wifiP2pGroup, final ActionListener listener) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+        Method getNetworkId = WifiP2pGroup.class.getMethod("getNetworkId");
+        Integer networkId = (Integer) getNetworkId.invoke(wifiP2pGroup);
+        Method deletePersistentGroup = WifiP2pManager.class.getMethod("deletePersistentGroup", WifiP2pManager.Channel.class, int.class, ActionListener.class);
+        deletePersistentGroup.invoke(manager, channel, networkId, listener);
     }
 
     /**
