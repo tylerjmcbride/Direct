@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import github.tylerjmcbride.direct.callbacks.SingleResultCallback;
 import github.tylerjmcbride.direct.callbacks.ClientCallback;
 import github.tylerjmcbride.direct.callbacks.ResultCallback;
 import github.tylerjmcbride.direct.callbacks.ServiceCallback;
@@ -52,8 +53,8 @@ public class Host extends Direct {
         receiver = new DirectBroadcastReceiver(manager, channel) {
             @Override
             protected void connectionChanged(WifiP2pInfo p2pInfo, NetworkInfo networkInfo, WifiP2pGroup p2pGroup) {
-                // No need to check {@link WifiP2pInfo#isGroupOwner} as this device is dedicated to hosting the service
-                if (p2pInfo.groupFormed) {
+                // The service is available
+                if (p2pInfo.groupFormed) { // No need to check {@link WifiP2pInfo#isGroupOwner} as this device is dedicated to hosting the service
                     // Remove clients whom no longer are connected
                     Collection<WifiP2pDevice> clientList = p2pGroup.getClientList();
                     for(WifiP2pDeviceInfo clientInfo : clients.keySet()) {
@@ -67,6 +68,7 @@ public class Host extends Direct {
                         }
                     }
                 } else {
+                    // The service has concluded
                     if(serviceCallback != null) {
                         serviceCallback.onServiceStopped();
                     }
@@ -128,9 +130,10 @@ public class Host extends Direct {
 
     /**
      * Sends the respective client the given serializable object.
-     * @param clientDevice The client device to receive the object.
-     * @param object The object to send to the respective client.
-     * @param callback The callback to capture the result.
+     *
+     * @param clientDevice The client device to receive the given serializable object.
+     * @param object The serializable object to send to the respective client.
+     * @param callback Invoked upon the success or failure of the request.
      */
     public void send(WifiP2pDevice clientDevice, Serializable object, final ResultCallback callback) {
         for(WifiP2pDeviceInfo clientInfo : clients.keySet()) {
@@ -159,66 +162,93 @@ public class Host extends Direct {
     /**
      * Registers the local service for service discovery effectively starting the service; however,
      * this is only a request to add said local service, the service will not officially be added
-     * until the framework is notified.
-     * @param callback The callback.
+     * until the framework has been notified.
+     *
+     * @param dataCallback Invoked when receiving data from a client.
+     * @param clientCallback Invoked when a client either connects or disconnects.
+     * @param serviceCallback Invoked when the service has officially stopped.
+     * @param callback Invoked upon the success or failure of the request.
      */
     public void startService(final ObjectCallback dataCallback, final ClientCallback clientCallback, final ServiceCallback serviceCallback, final ResultCallback callback) {
         // Clear any previously existing service
         manager.clearLocalServices(channel, new WifiP2pManager.ActionListener() {
             @Override
             public void onSuccess() {
-                objectReceiver.start(dataCallback, new ServerSocketInitializationCompleteListener() {
+                Log.d(TAG, "Succeeded to clear local services.");
+                removeGroup(new SingleResultCallback() {
                     @Override
-                    public void onSuccess(ServerSocket serverSocket) {
-                        Log.d(TAG, String.format("Succeeded to start object receiver on port %d.", serverSocket.getLocalPort()));
-                        thisDeviceInfo.setPort(serverSocket.getLocalPort());
-
-                        registrar.start(new ServerSocketInitializationCompleteListener() {
+                    public void onSuccessOrFailure() {
+                        objectReceiver.start(dataCallback, new ServerSocketInitializationCompleteListener() {
                             @Override
                             public void onSuccess(ServerSocket serverSocket) {
-                                Log.d(TAG, String.format("Succeeded to start registrar on port %d.", serverSocket.getLocalPort()));
-                                Host.this.clientCallback = clientCallback;
-                                Host.this.serviceCallback = serviceCallback;
+                                Log.d(TAG, String.format("Succeeded to start object receiver on port %d.", serverSocket.getLocalPort()));
+                                thisDeviceInfo.setPort(serverSocket.getLocalPort());
 
-                                // Reinitialize the service information to reflect the new registration port
-                                record.put(REGISTRAR_PORT_TAG, Integer.toString(serverSocket.getLocalPort()));
-                                serviceInfo = WifiP2pDnsSdServiceInfo.newInstance(instance, service.concat("._tcp"), record);
-
-                                manager.addLocalService(channel, serviceInfo, new WifiP2pManager.ActionListener() {
+                                registrar.start(new ServerSocketInitializationCompleteListener() {
                                     @Override
-                                    public void onSuccess() {
-                                        Log.d(TAG, "Succeeded to add local service.");
-                                        serviceBroadcastingThread = new Thread(new ServiceBroadcastingRunnable());
-                                        serviceBroadcastingThread.start();
-                                        callback.onSuccess();
+                                    public void onSuccess(ServerSocket serverSocket) {
+                                        Log.d(TAG, String.format("Succeeded to start registrar on port %d.", serverSocket.getLocalPort()));
+                                        Host.this.clientCallback = clientCallback;
+                                        Host.this.serviceCallback = serviceCallback;
+
+                                        // Reinitialize the service information to reflect the new registration port
+                                        record.put(REGISTRAR_PORT_TAG, Integer.toString(serverSocket.getLocalPort()));
+                                        serviceInfo = WifiP2pDnsSdServiceInfo.newInstance(instance, service.concat("._tcp"), record);
+
+                                        manager.createGroup(channel, new WifiP2pManager.ActionListener() {
+                                            @Override
+                                            public void onSuccess() {
+                                                Log.d(TAG, "Succeeded to create group.");
+                                                manager.addLocalService(channel, serviceInfo, new WifiP2pManager.ActionListener() {
+                                                    @Override
+                                                    public void onSuccess() {
+                                                        Log.d(TAG, "Succeeded to add local service.");
+                                                        serviceBroadcastingThread = new Thread(new ServiceBroadcastingRunnable());
+                                                        serviceBroadcastingThread.start();
+                                                        callback.onSuccess();
+
+                                                    }
+
+                                                    @Override
+                                                    public void onFailure(int reason) {
+                                                        Log.d(TAG, "Failed to add local service.");
+                                                        callback.onFailure();
+                                                    }
+                                                });
+                                            }
+
+                                            @Override
+                                            public void onFailure(int reason) {
+                                                Log.d(TAG, "Failed to create group.");
+                                                callback.onFailure();
+                                                registrar.stop();
+                                                objectReceiver.stop();
+                                            }
+                                        });
                                     }
 
                                     @Override
-                                    public void onFailure(int reason) {
-                                        Log.d(TAG, "Failed to add local service.");
+                                    public void onFailure() {
+                                        Log.d(TAG, "Failed to start registrar.");
                                         callback.onFailure();
+                                        objectReceiver.stop();
                                     }
                                 });
                             }
 
                             @Override
                             public void onFailure() {
-                                Log.d(TAG, "Failed to start registrar.");
+                                Log.d(TAG, "Failed to start object receiver.");
                                 callback.onFailure();
                             }
                         });
-                    }
-
-                    @Override
-                    public void onFailure() {
-                        Log.d(TAG, "Failed to start object receiver.");
-                        callback.onFailure();
                     }
                 });
             }
 
             @Override
             public void onFailure(int reason) {
+                Log.d(TAG, "Failed to clear local services.");
                 callback.onFailure();
             }
         });
@@ -226,9 +256,11 @@ public class Host extends Direct {
 
     /**
      * If a local service exists, this method will remove said service effectively stopping the
-     * service; however, this is only a request to remove a local service, the service will not
-     * officially be removed until the framework is notified.
-     * @param callback The callback.
+     * service; however, this is only a request to remove said local service, the service will not
+     * officially be removed until the framework has been notified. The {@link ServiceCallback}
+     * will capture this event.
+     *
+     * @param callback Invoked upon the success or failure of the request.
      */
     public void stopService(final ResultCallback callback) {
         manager.removeLocalService(channel, serviceInfo, new WifiP2pManager.ActionListener() {
@@ -238,6 +270,7 @@ public class Host extends Direct {
                 if (serviceBroadcastingThread != null) {
                     serviceBroadcastingThread.interrupt();
                 }
+
                 removeGroup(new ResultCallback() {
                     @Override
                     public void onSuccess() {
@@ -303,6 +336,18 @@ public class Host extends Direct {
     }
 
     /**
+     * If this instance is garbage collected, attempt to end the service.
+     * @throws Throwable Throws any given exception.
+     */
+    @Override
+    protected void finalize() throws Throwable {
+        super.finalize();
+        if(manager != null && channel != null) {
+            manager.clearLocalServices(channel, null);
+        }
+    }
+
+    /**
      * Will continually broadcast the service. The {@link ServiceBroadcastingRunnable} will run on
      * its respective {@link Thread} until {@link Thread#interrupt()} is called.
      */
@@ -328,18 +373,6 @@ public class Host extends Direct {
                     Thread.currentThread().interrupt();
                 }
             }
-        }
-    }
-
-    /**
-     * If this instance is garbage collected, attempt to end the service.
-     * @throws Throwable Throws any given exception.
-     */
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        if(manager != null && channel != null) {
-            manager.clearLocalServices(channel, null);
         }
     }
 }
