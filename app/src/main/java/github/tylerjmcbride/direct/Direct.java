@@ -110,25 +110,19 @@ public abstract class Direct {
                         @Override
                         public void onSuccess() {
                             Log.d(TAG, "Succeeded to remove group.");
+                            deletePersistentGroup(group, new ActionListener() {
+                                @Override
+                                public void onSuccess() {
+                                    Log.d(TAG, "Succeeded to delete persistent group.");
+                                    callback.onSuccess();
+                                }
 
-                            try {
-                                deletePersistentGroup(group, new ActionListener() {
-                                    @Override
-                                    public void onSuccess() {
-                                        Log.d(TAG, "Succeeded to delete persistent group.");
-                                        callback.onSuccess();
-                                    }
-
-                                    @Override
-                                    public void onFailure(int reason) {
-                                        Log.d(TAG, "Failed to delete persistent group.");
-                                        callback.onFailure();
-                                    }
-                                });
-                            } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
-                                Log.e(TAG, "Failed to delete persistent group");
-                                callback.onFailure();
-                            }
+                                @Override
+                                public void onFailure(int reason) {
+                                    Log.d(TAG, "Failed to delete persistent group.");
+                                    callback.onFailure();
+                                }
+                            });
                         }
 
                         @Override
@@ -152,11 +146,15 @@ public abstract class Direct {
      * @param wifiP2pGroup The respective {@link WifiP2pGroup}.
      * @param listener Invoked upon the success or failure of the request.
      */
-    protected void deletePersistentGroup(WifiP2pGroup wifiP2pGroup, final ActionListener listener) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-        Method getNetworkId = WifiP2pGroup.class.getMethod("getNetworkId");
-        Integer networkId = (Integer) getNetworkId.invoke(wifiP2pGroup);
-        Method deletePersistentGroup = WifiP2pManager.class.getMethod("deletePersistentGroup", WifiP2pManager.Channel.class, int.class, ActionListener.class);
-        deletePersistentGroup.invoke(manager, channel, networkId, listener);
+    protected void deletePersistentGroup(WifiP2pGroup wifiP2pGroup, final ActionListener listener) {
+        try {
+            Method getNetworkId = WifiP2pGroup.class.getMethod("getNetworkId");
+            Integer networkId = (Integer) getNetworkId.invoke(wifiP2pGroup);
+            Method deletePersistentGroup = WifiP2pManager.class.getMethod("deletePersistentGroup", WifiP2pManager.Channel.class, int.class, ActionListener.class);
+            deletePersistentGroup.invoke(manager, channel, networkId, listener);
+        } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
+            listener.onFailure(WifiP2pManager.ERROR);
+        }
     }
 
     /**
