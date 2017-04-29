@@ -6,7 +6,8 @@ import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pInfo;
-import android.net.wifi.p2p.WifiP2pManager;
+import android.net.wifi.p2p.WifiP2pManager.ActionListener;
+import android.net.wifi.p2p.WifiP2pManager.PeerListListener;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
 import android.util.Log;
 
@@ -20,10 +21,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import github.tylerjmcbride.direct.callbacks.SingleResultCallback;
 import github.tylerjmcbride.direct.callbacks.ClientCallback;
 import github.tylerjmcbride.direct.callbacks.ResultCallback;
 import github.tylerjmcbride.direct.callbacks.ServiceCallback;
+import github.tylerjmcbride.direct.callbacks.SingleResultCallback;
 import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
 import github.tylerjmcbride.direct.registration.HostRegistrar;
 import github.tylerjmcbride.direct.registration.listeners.HandshakeListener;
@@ -97,7 +98,7 @@ public class Host extends Direct {
         registrar = new HostRegistrar(this, handler, new HandshakeListener() {
             @Override
             public void onHandshake(final WifiP2pDeviceInfo clientInfo) {
-                manager.requestPeers(channel, new WifiP2pManager.PeerListListener() {
+                manager.requestPeers(channel, new PeerListListener() {
                     @Override
                     public void onPeersAvailable(WifiP2pDeviceList peers) {
                         WifiP2pDevice clientDevice = peers.get(clientInfo.getMacAddress());
@@ -171,7 +172,7 @@ public class Host extends Direct {
      */
     public void startService(final ObjectCallback dataCallback, final ClientCallback clientCallback, final ServiceCallback serviceCallback, final ResultCallback callback) {
         // Clear any previously existing service
-        manager.clearLocalServices(channel, new WifiP2pManager.ActionListener() {
+        manager.clearLocalServices(channel, new ActionListener() {
             @Override
             public void onSuccess() {
                 Log.d(TAG, "Succeeded to clear local services.");
@@ -195,11 +196,11 @@ public class Host extends Direct {
                                         record.put(REGISTRAR_PORT_TAG, Integer.toString(serverSocket.getLocalPort()));
                                         serviceInfo = WifiP2pDnsSdServiceInfo.newInstance(instance, service.concat("._tcp"), record);
 
-                                        manager.createGroup(channel, new WifiP2pManager.ActionListener() {
+                                        manager.createGroup(channel, new ActionListener() {
                                             @Override
                                             public void onSuccess() {
                                                 Log.d(TAG, "Succeeded to create group.");
-                                                manager.addLocalService(channel, serviceInfo, new WifiP2pManager.ActionListener() {
+                                                manager.addLocalService(channel, serviceInfo, new ActionListener() {
                                                     @Override
                                                     public void onSuccess() {
                                                         Log.d(TAG, "Succeeded to add local service.");
@@ -263,7 +264,7 @@ public class Host extends Direct {
      * @param callback Invoked upon the success or failure of the request.
      */
     public void stopService(final ResultCallback callback) {
-        manager.removeLocalService(channel, serviceInfo, new WifiP2pManager.ActionListener() {
+        manager.removeLocalService(channel, serviceInfo, new ActionListener() {
             @Override
             public void onSuccess() {
                 Log.d(TAG, "Succeeded to remove local service.");
@@ -309,7 +310,7 @@ public class Host extends Direct {
      * range they will be pruned.
      */
     private void pruneDisconnectedClients() {
-        manager.requestPeers(channel, new WifiP2pManager.PeerListListener() {
+        manager.requestPeers(channel, new PeerListListener() {
             @Override
             public void onPeersAvailable(WifiP2pDeviceList peers) {
                 for(WifiP2pDevice peer : peers.getDeviceList()) {
@@ -360,7 +361,7 @@ public class Host extends Direct {
             while (!Thread.currentThread().isInterrupted()) {
                 try {
                     Thread.sleep(SERVICE_BROADCASTING_INTERVAL);
-                    manager.discoverPeers(channel, new WifiP2pManager.ActionListener() {
+                    manager.discoverPeers(channel, new ActionListener() {
                         @Override
                         public void onSuccess() {
                         }

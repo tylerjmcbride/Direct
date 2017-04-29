@@ -9,6 +9,10 @@ import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
+import android.net.wifi.p2p.WifiP2pManager.ActionListener;
+import android.net.wifi.p2p.WifiP2pManager.DnsSdServiceResponseListener;
+import android.net.wifi.p2p.WifiP2pManager.DnsSdTxtRecordListener;
+import android.net.wifi.p2p.WifiP2pManager.PeerListListener;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceRequest;
 import android.util.Log;
 
@@ -153,11 +157,11 @@ public class Client extends Direct {
             serviceRequest = WifiP2pDnsSdServiceRequest.newInstance();
             this.discoveryCallback = discoveryCallback;
 
-            manager.addServiceRequest(channel, serviceRequest, new WifiP2pManager.ActionListener() {
+            manager.addServiceRequest(channel, serviceRequest, new ActionListener() {
                 @Override
                 public void onSuccess() {
                     Log.d(TAG, "Succeeded to add service request.");
-                    manager.discoverServices(channel, new WifiP2pManager.ActionListener() {
+                    manager.discoverServices(channel, new ActionListener() {
                         @Override
                         public void onSuccess() {
                             Log.d(TAG, "Succeeded to start service discovery.");
@@ -189,14 +193,14 @@ public class Client extends Direct {
      */
     public void stopDiscovery(final ResultCallback callback) {
         if(serviceRequest != null) {
-            manager.removeServiceRequest(channel, serviceRequest, new WifiP2pManager.ActionListener() {
+            manager.removeServiceRequest(channel, serviceRequest, new ActionListener() {
                 @Override
                 public void onSuccess() {
                     Log.d(TAG, "Succeeded to remove service request.");
                     serviceRequest = null;
                     discoveryCallback = null;
                     nearbyHostDevices.clear();
-                    manager.stopPeerDiscovery(channel, new WifiP2pManager.ActionListener() {
+                    manager.stopPeerDiscovery(channel, new ActionListener() {
                         @Override
                         public void onSuccess() {
                             Log.d(TAG, "Succeeded to stop peer discovery.");
@@ -237,7 +241,7 @@ public class Client extends Direct {
             config.wps.setup = WpsInfo.PBC;
             config.groupOwnerIntent = 0;
 
-            manager.connect(channel, config, new WifiP2pManager.ActionListener() {
+            manager.connect(channel, config, new ActionListener() {
                 @Override
                 public void onSuccess() {
                     Log.d(TAG, "Succeeded to request connection.");
@@ -370,12 +374,12 @@ public class Client extends Direct {
      * Sets the {@link WifiP2pManager} DNS response listeners. For internal use only.
      */
     private void setDnsSdResponseListeners() {
-        manager.setDnsSdResponseListeners(channel, new WifiP2pManager.DnsSdServiceResponseListener() {
+        manager.setDnsSdResponseListeners(channel, new DnsSdServiceResponseListener() {
             @Override
             public void onDnsSdServiceAvailable(String instanceName, String registrationType, WifiP2pDevice device) {
                 // Nothing to be done here
             }
-        }, new WifiP2pManager.DnsSdTxtRecordListener() {
+        }, new DnsSdTxtRecordListener() {
             @Override
             public void onDnsSdTxtRecordAvailable(String fullDomain, Map<String, String> record, WifiP2pDevice device) {
                 if(record != null && record.containsKey(SERVICE_NAME_TAG) && record.get(SERVICE_NAME_TAG).equals(service)) {
@@ -395,7 +399,7 @@ public class Client extends Direct {
      * are out of range they will be pruned.
      */
     private void pruneLostHosts() {
-        manager.requestPeers(channel, new WifiP2pManager.PeerListListener() {
+        manager.requestPeers(channel, new PeerListListener() {
             @Override
             public void onPeersAvailable(WifiP2pDeviceList peers) {
                 for(WifiP2pDevice peer : peers.getDeviceList()) {
