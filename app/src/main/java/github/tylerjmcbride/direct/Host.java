@@ -189,6 +189,7 @@ public class Host extends Direct {
                                     @Override
                                     public void onSuccess(ServerSocket serverSocket) {
                                         Log.d(TAG, String.format("Succeeded to start registrar on port %d.", serverSocket.getLocalPort()));
+
                                         // Reinitialize the service information to reflect the new registration port
                                         record.put(REGISTRAR_PORT_TAG, Integer.toString(serverSocket.getLocalPort()));
                                         serviceInfo = WifiP2pDnsSdServiceInfo.newInstance(instance, service.concat("._tcp"), record);

@@ -2,7 +2,6 @@ package github.tylerjmcbride.direct;
 
 import android.app.Application;
 import android.net.NetworkInfo;
-import android.net.wifi.WpsInfo;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
@@ -28,6 +27,7 @@ import java.util.Map;
 import github.tylerjmcbride.direct.callbacks.ConnectionCallback;
 import github.tylerjmcbride.direct.callbacks.DiscoveryCallback;
 import github.tylerjmcbride.direct.callbacks.ResultCallback;
+import github.tylerjmcbride.direct.callbacks.SingleResultCallback;
 import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
 import github.tylerjmcbride.direct.registration.ClientRegistrar;
 import github.tylerjmcbride.direct.registration.listeners.RegisteredWithServerListener;
@@ -123,8 +123,9 @@ public class Client extends Direct {
 
     /**
      * Sends the host the given serializable object.
-     * @param object The object to send to the host.
-     * @param callback The callback to capture the result.
+     *
+     * @param object The serializable object to send to the host.
+     * @param callback Invoked upon the success or failure of the request.
      */
     public void send(Serializable object, final ResultCallback callback) {
         if(hostDevice != null && hostDeviceInfo != null) {
@@ -149,8 +150,9 @@ public class Client extends Direct {
      * If successful, this method will then initiate service discovery. Service discovery is a
      * process that involves scanning for requested services for the purpose of establishing a
      * connection to a peer that supports an available service.
+     *
      * @param discoveryCallback The callback when a new service has been discovered.
-     * @param resultCallback The callback on the success or failure of the request.
+     * @param resultCallback Invoked upon the success or failure of the request.
      */
     public void startDiscovery(final DiscoveryCallback discoveryCallback, final ResultCallback resultCallback) {
         if(serviceRequest == null) {
@@ -189,7 +191,8 @@ public class Client extends Direct {
      * This method will remove the service request created in {@link Client#startDiscovery(DiscoveryCallback, ResultCallback)} )},
      * effectively ceasing service discovery. Note that {@link Client#nearbyHostDevices} will be
      * cleared.
-     * @param callback The callback.
+     *
+     * @param callback Invoked upon the success or failure of the request.
      */
     public void stopDiscovery(final ResultCallback callback) {
         if(serviceRequest != null) {
@@ -225,33 +228,39 @@ public class Client extends Direct {
     }
 
     /**
-     * Connects to the specified hostDevice. If a connection exists prior to calling this method,
-     * this method will disconnect said previous connection.
-     * @param hostDevice The specified hostDevice.
-     * @param callback The callback.
+     * Connects to the specified host {@link WifiP2pDevice}. If a connection exists prior to calling this method,
+     * this method will terminate said connection.
+     *
+     * @param hostDevice The specified host {@link WifiP2pDevice}.
+     * @param callback Invoked upon the success or failure of the request.
      */
-    public void connect(final WifiP2pDevice hostDevice, ObjectCallback dataCallback, final ConnectionCallback connectionCallback, final ResultCallback callback) {
+    public void connect(final WifiP2pDevice hostDevice, final ObjectCallback dataCallback, final ConnectionCallback connectionCallback, final ResultCallback callback) {
         if(hostDevice != null && hostIsNearby(hostDevice)) {
             this.hostRegistrarPort = getHostRegistrationPort(hostDevice);
             this.objectCallback = dataCallback;
             this.connectionCallback = connectionCallback;
 
-            WifiP2pConfig config = new WifiP2pConfig();
-            config.deviceAddress = hostDevice.deviceAddress;
-            config.wps.setup = WpsInfo.PBC;
-            config.groupOwnerIntent = 0;
-
-            manager.connect(channel, config, new ActionListener() {
+            // Terminate previous connection
+            removeGroup(new SingleResultCallback() {
                 @Override
-                public void onSuccess() {
-                    Log.d(TAG, "Succeeded to request connection.");
-                    callback.onSuccess();
-                }
+                public void onSuccessOrFailure() {
+                    WifiP2pConfig config = new WifiP2pConfig();
+                    config.deviceAddress = hostDevice.deviceAddress;
+                    config.groupOwnerIntent = 0;
 
-                @Override
-                public void onFailure(int reason) {
-                    Log.d(TAG, String.format("Failed to request connection to %s.", hostDevice.deviceAddress));
-                    callback.onFailure();
+                    manager.connect(channel, config, new ActionListener() {
+                        @Override
+                        public void onSuccess() {
+                            Log.d(TAG, "Succeeded to request connection.");
+                            callback.onSuccess();
+                        }
+
+                        @Override
+                        public void onFailure(int reason) {
+                            Log.d(TAG, String.format("Failed to request connection to %s.", hostDevice.deviceAddress));
+                            callback.onFailure();
+                        }
+                    });
                 }
             });
         } else {
@@ -262,7 +271,8 @@ public class Client extends Direct {
 
     /**
      * If a connection to a host exists, this method will disconnect the device from said host.
-     * @param callback The callback.
+     *
+     * @param callback Invoked upon the success or failure of the request.
      */
     public void disconnect(final ResultCallback callback) {
         // Must unregister itself with the host before removing the {@link WifiP2pGroup}
@@ -316,7 +326,6 @@ public class Client extends Direct {
                     callback.onFailure();
                 }
             });
-            callback.onSuccess();
         }
     }
 
