@@ -213,7 +213,14 @@ public class Host extends Direct {
                                                     @Override
                                                     public void onFailure(int reason) {
                                                         Log.d(TAG, "Failed to add local service.");
-                                                        callback.onFailure();
+                                                        removeGroup(new SingleResultCallback() {
+                                                            @Override
+                                                            public void onSuccessOrFailure() {
+                                                                registrar.stop();
+                                                                objectReceiver.stop();
+                                                                callback.onFailure();
+                                                            }
+                                                        });
                                                     }
                                                 });
                                             }
@@ -221,9 +228,9 @@ public class Host extends Direct {
                                             @Override
                                             public void onFailure(int reason) {
                                                 Log.d(TAG, "Failed to create group.");
-                                                callback.onFailure();
                                                 registrar.stop();
                                                 objectReceiver.stop();
+                                                callback.onFailure();
                                             }
                                         });
                                     }
@@ -231,8 +238,8 @@ public class Host extends Direct {
                                     @Override
                                     public void onFailure() {
                                         Log.d(TAG, "Failed to start registrar.");
-                                        callback.onFailure();
                                         objectReceiver.stop();
+                                        callback.onFailure();
                                     }
                                 });
                             }
