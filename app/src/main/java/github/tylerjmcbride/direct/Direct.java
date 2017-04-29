@@ -105,31 +105,34 @@ public abstract class Direct {
         manager.requestGroupInfo(channel, new GroupInfoListener() {
             @Override
             public void onGroupInfoAvailable(final WifiP2pGroup group) {
-                manager.removeGroup(channel, new ActionListener() {
-                    @Override
-                    public void onSuccess() {
-                        Log.d(TAG, "Succeeded to remove group.");
-                        deletePersistentGroup(group, new ResultCallback() {
-                            @Override
-                            public void onSuccess() {
-                                Log.d(TAG, "Succeeded to remove persistent group.");
-                                callback.onSuccess();
-                            }
+                if(group != null) {
+                    manager.removeGroup(channel, new ActionListener() {
+                        @Override
+                        public void onSuccess() {
+                            Log.d(TAG, "Succeeded to remove group.");
+                            deletePersistentGroup(group, new ResultCallback() {
+                                @Override
+                                public void onSuccess() {
+                                    callback.onSuccess();
+                                }
 
-                            @Override
-                            public void onFailure() {
-                                Log.d(TAG, "Failed to remove persistent group.");
-                                callback.onFailure();
-                            }
-                        });
-                    }
+                                @Override
+                                public void onFailure() {
+                                    callback.onFailure();
+                                }
+                            });
+                        }
 
-                    @Override
-                    public void onFailure(int reason) {
-                        Log.d(TAG, "Failed to retrieve group.");
-                        callback.onFailure();
-                    }
-                });
+                        @Override
+                        public void onFailure(int reason) {
+                            Log.d(TAG, "Failed to remove group.");
+                            callback.onFailure();
+                        }
+                    });
+                } else {
+                    Log.d(TAG, "Succeeded to confirm no group exists.");
+                    callback.onSuccess();
+                }
             }
         });
     }
