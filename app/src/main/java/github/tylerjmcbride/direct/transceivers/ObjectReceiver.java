@@ -16,7 +16,7 @@ import github.tylerjmcbride.direct.transceivers.runnables.ObjectReceiverRunnable
 
 public class ObjectReceiver {
 
-    private static final int DEFAULT_RECEIVER_PORT = 0;
+    private static final int DEFAULT_RECEIVER_PORT = 59500;
     private static final int MAX_SERVER_CONNECTIONS = 25;
 
     private ExecutorService executor = Executors.newSingleThreadExecutor();
