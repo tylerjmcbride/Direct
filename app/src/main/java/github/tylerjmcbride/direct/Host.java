@@ -189,9 +189,6 @@ public class Host extends Direct {
                                     @Override
                                     public void onSuccess(ServerSocket serverSocket) {
                                         Log.d(TAG, String.format("Succeeded to start registrar on port %d.", serverSocket.getLocalPort()));
-                                        Host.this.clientCallback = clientCallback;
-                                        Host.this.serviceCallback = serviceCallback;
-
                                         // Reinitialize the service information to reflect the new registration port
                                         record.put(REGISTRAR_PORT_TAG, Integer.toString(serverSocket.getLocalPort()));
                                         serviceInfo = WifiP2pDnsSdServiceInfo.newInstance(instance, service.concat("._tcp"), record);
@@ -204,6 +201,8 @@ public class Host extends Direct {
                                                     @Override
                                                     public void onSuccess() {
                                                         Log.d(TAG, "Succeeded to add local service.");
+                                                        Host.this.clientCallback = clientCallback;
+                                                        Host.this.serviceCallback = serviceCallback;
                                                         serviceBroadcastingThread = new Thread(new ServiceBroadcastingRunnable());
                                                         serviceBroadcastingThread.start();
                                                         callback.onSuccess();
