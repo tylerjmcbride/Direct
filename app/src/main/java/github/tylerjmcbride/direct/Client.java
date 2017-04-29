@@ -240,7 +240,7 @@ public class Client extends Direct {
             this.objectCallback = dataCallback;
             this.connectionCallback = connectionCallback;
 
-            // Terminate previous connection
+            // Attempt to terminate previous connection
             removeGroup(new SingleResultCallback() {
                 @Override
                 public void onSuccessOrFailure() {
@@ -251,13 +251,13 @@ public class Client extends Direct {
                     manager.connect(channel, config, new ActionListener() {
                         @Override
                         public void onSuccess() {
-                            Log.d(TAG, "Succeeded to request connection.");
+                            Log.d(TAG, String.format("Succeeded to request connection with %s.", hostDevice.deviceAddress));
                             callback.onSuccess();
                         }
 
                         @Override
                         public void onFailure(int reason) {
-                            Log.d(TAG, String.format("Failed to request connection to %s.", hostDevice.deviceAddress));
+                            Log.d(TAG, String.format("Failed to request connection with %s.", hostDevice.deviceAddress));
                             callback.onFailure();
                         }
                     });
@@ -284,48 +284,18 @@ public class Client extends Direct {
                 @Override
                 public void onSuccess() {
                     Log.d(TAG, String.format("Succeeded to unregister with %s.", hostMacAddress));
-                    removeGroup(new ResultCallback() {
-                        @Override
-                        public void onSuccess() {
-                            callback.onSuccess();
-                        }
-
-                        @Override
-                        public void onFailure() {
-                            callback.onFailure();
-                        }
-                    });
+                    removeGroup(callback);
                 }
 
                 @Override
                 public void onFailure() {
                     Log.d(TAG, String.format("Failed to unregister with %s.", hostMacAddress));
-                    removeGroup(new ResultCallback() {
-                        @Override
-                        public void onSuccess() {
-                            callback.onSuccess();
-                        }
-
-                        @Override
-                        public void onFailure() {
-                            callback.onFailure();
-                        }
-                    });
+                    removeGroup(callback);
                 }
             });
         } else {
             Log.d(TAG, "Not currently registered.");
-            removeGroup(new ResultCallback() {
-                @Override
-                public void onSuccess() {
-                    callback.onSuccess();
-                }
-
-                @Override
-                public void onFailure() {
-                    callback.onFailure();
-                }
-            });
+            removeGroup(callback);
         }
     }
 
