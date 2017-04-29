@@ -207,7 +207,6 @@ public class Host extends Direct {
                                                         serviceBroadcastingThread = new Thread(new ServiceBroadcastingRunnable());
                                                         serviceBroadcastingThread.start();
                                                         callback.onSuccess();
-
                                                     }
 
                                                     @Override
