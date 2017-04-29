@@ -27,7 +27,7 @@ import github.tylerjmcbride.direct.sockets.runnables.ServerSocketRunnable;
  */
 public class HostRegistrar {
 
-    private static final int DEFAULT_REGISTRATION_PORT = 37500;
+    private static final int DEFAULT_REGISTRATION_PORT = 59250;
     private static final int MAX_SERVER_CONNECTIONS = 25;
 
     private ExecutorService executor = Executors.newSingleThreadExecutor();
