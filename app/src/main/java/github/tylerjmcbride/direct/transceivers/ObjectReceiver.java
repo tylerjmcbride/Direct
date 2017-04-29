@@ -5,6 +5,8 @@ import android.util.Log;
 
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import github.tylerjmcbride.direct.Direct;
 import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
@@ -16,6 +18,8 @@ public class ObjectReceiver {
 
     private static final int DEFAULT_RECEIVER_PORT = 0;
     private static final int MAX_SERVER_CONNECTIONS = 25;
+
+    private ExecutorService executor = Executors.newSingleThreadExecutor();
 
     private ServerSocket serverSocket;
     private Handler handler;
@@ -36,7 +40,7 @@ public class ObjectReceiver {
             public void onSuccess(ServerSocket serverSocket) {
                 Log.d(Direct.TAG, String.format("Succeeded to initialize receiver socket on port %d.", serverSocket.getLocalPort()));
                 ObjectReceiver.this.serverSocket = serverSocket;
-                new Thread(new ObjectReceiverRunnable(serverSocket, handler, objectCallback)).start();
+                executor.submit(new ObjectReceiverRunnable(serverSocket, handler, objectCallback));
                 initializationListener.onSuccess(serverSocket);
             }
 

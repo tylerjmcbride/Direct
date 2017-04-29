@@ -55,7 +55,7 @@ public class HostRegistrar {
                 Log.d(Direct.TAG, String.format("Succeeded to initialize registration socket on port %d.", serverSocket.getLocalPort()));
                 HostRegistrar.this.serverSocket = serverSocket;
 
-                new Thread(new ServerSocketRunnable(serverSocket) {
+                executor.submit(new ServerSocketRunnable(serverSocket) {
                     @Override
                     public void onConnected(final Socket clientSocket) {
                         try {
@@ -101,7 +101,7 @@ public class HostRegistrar {
                             }
                         }
                     }
-                }).start();
+                });
 
                 initializationCompleteListener.onSuccess(serverSocket);
             }
