@@ -294,7 +294,6 @@ public class Client extends Direct {
                 }
             });
         } else {
-            Log.d(TAG, "Not currently registered.");
             removeGroup(callback);
         }
     }
