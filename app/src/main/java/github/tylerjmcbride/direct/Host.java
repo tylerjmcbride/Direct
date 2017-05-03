@@ -88,8 +88,9 @@ public class Host extends Direct {
             protected void connectionChanged(WifiP2pInfo p2pInfo, NetworkInfo networkInfo, WifiP2pGroup p2pGroup) {
                 // The service is available
                 if (p2pInfo.groupFormed) { // No need to check {@link WifiP2pInfo#isGroupOwner} as this device is dedicated to hosting the service
-                    // Remove clients whom no longer are connected
                     Collection<WifiP2pDevice> clientList = p2pGroup.getClientList();
+
+                    // Remove clients whom no longer are connected
                     for(WifiP2pDeviceInfo clientInfo : clients.keySet()) {
                         if(!clientList.contains(clients.get(clientInfo))) {
                             Log.d(TAG, clientInfo.getMacAddress() + " has disconnected.");
