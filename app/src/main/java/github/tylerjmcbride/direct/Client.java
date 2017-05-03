@@ -361,11 +361,18 @@ public class Client extends Direct {
         }, new DnsSdTxtRecordListener() {
             @Override
             public void onDnsSdTxtRecordAvailable(String fullDomain, Map<String, String> record, WifiP2pDevice device) {
-                if(record != null && record.containsKey(SERVICE_NAME_TAG) && record.get(SERVICE_NAME_TAG).equals(service)) {
-                    if (!nearbyHostDevices.keySet().contains(device)) {
-                        Log.d(TAG, "Succeeded to retrieve " + device.deviceAddress + " txt record.");
-                        nearbyHostDevices.put(device, Integer.valueOf(record.get(REGISTRAR_PORT_TAG)));
-                        discoveryCallback.onDiscovered(new WifiP2pDevice(device));
+                if(device != null && record != null && record.containsKey(SERVICE_NAME_TAG) && record.get(SERVICE_NAME_TAG).equals(service)) {
+                    Log.d(TAG, "Succeeded to retrieve " + device.deviceAddress + " txt record.");
+
+                    // Ensure the device contains the proper tags
+                    if(record.containsKey(INSTANCE_NAME_TAG) && record.containsKey(REGISTRAR_PORT_TAG)) {
+                        Log.d(TAG, "Succeeded to ensure " + device.deviceAddress + " contains the proper tags.");
+                        if (!nearbyHostDevices.keySet().contains(device)) {
+                            nearbyHostDevices.put(device, Integer.valueOf(record.get(REGISTRAR_PORT_TAG)));
+                            discoveryCallback.onDiscovered(new WifiP2pDevice(device));
+                        }
+                    } else {
+                        Log.d(TAG, "Failed to ensure " + device.deviceAddress + " contains the proper tags.");
                     }
                 }
             }
