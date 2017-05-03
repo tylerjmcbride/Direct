@@ -276,22 +276,12 @@ public class Host extends Direct {
                 if (serviceBroadcastingThread != null) {
                     serviceBroadcastingThread.interrupt();
                 }
-
-                removeGroup(new ResultCallback() {
-                    @Override
-                    public void onSuccess() {
-                        callback.onSuccess();
-                    }
-
-                    @Override
-                    public void onFailure() {
-                        callback.onFailure();
-                    }
-                });
+                removeGroup(callback);
             }
 
             @Override
             public void onFailure(int reason) {
+                Log.d(TAG, "Failed to remove local service.");
                 callback.onFailure();
             }
         });
