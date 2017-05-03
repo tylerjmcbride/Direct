@@ -40,9 +40,9 @@ public class ObjectTransmitter {
                     outputStream.writeObject(object);
                     outputStream.flush();
                     outputStream.close();
-                    Log.d(Direct.TAG, "Succeeded to send object.");
+                    Log.d(Direct.TAG, "Succeeded to send data.");
                 } catch (IOException ex) {
-                    Log.e(Direct.TAG, "Failed to send object.");
+                    Log.e(Direct.TAG, "Failed to send data.");
                 } finally {
                     if (socket != null) {
                         if (socket.isConnected()) {

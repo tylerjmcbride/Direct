@@ -5,6 +5,7 @@ import android.util.Log;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -27,6 +28,7 @@ public abstract class ServerSocketRunnable implements Runnable {
     @Override
     public void run() {
         try {
+            // Will run indefinitely unless the current thread is interrupted
             while (!Thread.currentThread().isInterrupted()) {
                 final Socket socket = serverSocket.accept();
                 executor.submit(new Runnable() {
@@ -36,10 +38,15 @@ public abstract class ServerSocketRunnable implements Runnable {
                     }
                 });
             }
+
             // Current thread has been interrupted, clean up registration socket
-            serverSocket.close();
-        } catch (IOException e) { // Really a SocketException
             Log.d(Direct.TAG, String.format("Succeeded to close socket on %d.", serverSocket.getLocalPort()));
+            serverSocket.close();
+        } catch (SocketException ex) {
+            // This exception is used to interrupt the current thread
+            Log.d(Direct.TAG, String.format("Succeeded to close socket on %d.", serverSocket.getLocalPort()));
+        } catch (IOException ex) {
+            Log.e(Direct.TAG, String.format("Unexpected exception thrown by socket %d.", serverSocket.getLocalPort()));
         }
 
         // Clean up executor service

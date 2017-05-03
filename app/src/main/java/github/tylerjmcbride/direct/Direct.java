@@ -28,6 +28,7 @@ public abstract class Direct {
 
     public static final String TAG = "Direct";
     public static final String SERVICE_NAME_TAG = "SERVICE_NAME";
+    public static final String INSTANCE_NAME_TAG = "INSTANCE_NAME";
     public static final String REGISTRAR_PORT_TAG = "PORT";
 
     protected WifiManager wifiManager;

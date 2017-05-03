@@ -53,6 +53,7 @@ public class Client extends Direct {
 
     public Client(Application application, String service) {
         super(application, service);
+        registrar = new ClientRegistrar(this, handler);
         receiver = new DirectBroadcastReceiver(manager, channel) {
             @Override
             protected void connectionChanged(WifiP2pInfo p2pInfo, NetworkInfo networkInfo, WifiP2pGroup p2pGroup) {
@@ -81,6 +82,7 @@ public class Client extends Direct {
                                 @Override
                                 public void onFailure() {
                                     Log.d(TAG, "Failed to register with host.");
+                                    objectReceiver.stop();
                                 }
                             });
                         }
@@ -117,7 +119,6 @@ public class Client extends Direct {
             }
         };
         application.getApplicationContext().registerReceiver(receiver, intentFilter);
-        registrar = new ClientRegistrar(this, handler);
         setDnsSdResponseListeners();
     }
 

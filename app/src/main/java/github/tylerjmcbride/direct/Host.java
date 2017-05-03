@@ -35,7 +35,6 @@ import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
 
 public class Host extends Direct {
 
-    private String instance;
     private HostRegistrar registrar;
     private WifiP2pDnsSdServiceInfo serviceInfo;
     private Map<String, String> record = new HashMap<>();
@@ -48,8 +47,41 @@ public class Host extends Direct {
 
     public Host(Application application, final String service, final String instance) {
         super(application, service);
-        this.instance = instance;
         record.put(SERVICE_NAME_TAG, service);
+        record.put(INSTANCE_NAME_TAG, instance);
+
+        registrar = new HostRegistrar(this, handler, new HandshakeListener() {
+            @Override
+            public void onHandshake(final WifiP2pDeviceInfo clientInfo) {
+                manager.requestPeers(channel, new PeerListListener() {
+                    @Override
+                    public void onPeersAvailable(WifiP2pDeviceList peers) {
+                        WifiP2pDevice clientDevice = peers.get(clientInfo.getMacAddress());
+
+                        if(clientDevice != null) {
+                            Log.d(TAG, String.format("Succeeded to register client %s.", clientInfo.getMacAddress()));
+                            clients.put(clientInfo, clientDevice);
+
+                            if(clientCallback != null) {
+                                clientCallback.onConnected(clientDevice);
+                            }
+                        } else {
+                            Log.d(TAG, String.format("Failed to register client %s.", clientInfo.getMacAddress()));
+                        }
+                    }
+                });
+            }
+
+            @Override
+            public void onAdieu(WifiP2pDeviceInfo clientInfo) {
+                Log.d(TAG, String.format("Succeeded to unregister client %s.", clientInfo.getMacAddress()));
+                WifiP2pDevice clientDevice = clients.remove(clientInfo);
+
+                if(clientCallback != null) {
+                    clientCallback.onDisconnected(clientDevice);
+                }
+            }
+        });
 
         receiver = new DirectBroadcastReceiver(manager, channel) {
             @Override
@@ -94,39 +126,6 @@ public class Host extends Direct {
             }
         };
         application.getApplicationContext().registerReceiver(receiver, intentFilter);
-
-        registrar = new HostRegistrar(this, handler, new HandshakeListener() {
-            @Override
-            public void onHandshake(final WifiP2pDeviceInfo clientInfo) {
-                manager.requestPeers(channel, new PeerListListener() {
-                    @Override
-                    public void onPeersAvailable(WifiP2pDeviceList peers) {
-                        WifiP2pDevice clientDevice = peers.get(clientInfo.getMacAddress());
-
-                        if(clientDevice != null) {
-                            Log.d(TAG, String.format("Succeeded to register client %s.", clientInfo.getMacAddress()));
-                            clients.put(clientInfo, clientDevice);
-
-                            if(clientCallback != null) {
-                                clientCallback.onConnected(clientDevice);
-                            }
-                        } else {
-                            Log.d(TAG, String.format("Failed to register client %s.", clientInfo.getMacAddress()));
-                        }
-                    }
-                });
-            }
-
-            @Override
-            public void onAdieu(WifiP2pDeviceInfo clientInfo) {
-                Log.d(TAG, String.format("Succeeded to unregister client %s.", clientInfo.getMacAddress()));
-                WifiP2pDevice clientDevice = clients.remove(clientInfo);
-
-                if(clientCallback != null) {
-                    clientCallback.onDisconnected(clientDevice);
-                }
-            }
-        });
     }
 
     /**
@@ -192,7 +191,7 @@ public class Host extends Direct {
 
                                         // Reinitialize the service information to reflect the new registration port
                                         record.put(REGISTRAR_PORT_TAG, Integer.toString(serverSocket.getLocalPort()));
-                                        serviceInfo = WifiP2pDnsSdServiceInfo.newInstance(instance, service.concat("._tcp"), record);
+                                        serviceInfo = WifiP2pDnsSdServiceInfo.newInstance(record.get(INSTANCE_NAME_TAG), service.concat("_presence._tcp"), record);
 
                                         manager.createGroup(channel, new ActionListener() {
                                             @Override

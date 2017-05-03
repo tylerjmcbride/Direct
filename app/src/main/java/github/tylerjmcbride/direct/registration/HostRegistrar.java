@@ -5,22 +5,16 @@ import android.os.Handler;
 import android.util.Log;
 
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import github.tylerjmcbride.direct.Direct;
 import github.tylerjmcbride.direct.Host;
-import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
 import github.tylerjmcbride.direct.registration.listeners.HandshakeListener;
-import github.tylerjmcbride.direct.registration.model.Adieu;
-import github.tylerjmcbride.direct.registration.model.Handshake;
+import github.tylerjmcbride.direct.registration.runnables.HostRegistrarRunnable;
 import github.tylerjmcbride.direct.sockets.ServerSockets;
 import github.tylerjmcbride.direct.sockets.listeners.ServerSocketInitializationCompleteListener;
-import github.tylerjmcbride.direct.sockets.runnables.ServerSocketRunnable;
 
 /**
  * A {@link HostRegistrar} is in charge of handling the registration of client {@link WifiP2pDevice}s.
@@ -54,55 +48,7 @@ public class HostRegistrar {
             public void onSuccess(ServerSocket serverSocket) {
                 Log.d(Direct.TAG, String.format("Succeeded to initialize registration socket on port %d.", serverSocket.getLocalPort()));
                 HostRegistrar.this.serverSocket = serverSocket;
-
-                executor.submit(new ServerSocketRunnable(serverSocket) {
-                    @Override
-                    public void onConnected(final Socket clientSocket) {
-                        try {
-                            // Retrieve details about the client device
-                            ObjectInputStream inputStream = new ObjectInputStream(clientSocket.getInputStream());
-                            Object object = inputStream.readObject();
-
-                            if(object instanceof Handshake) {
-                                Handshake handshake = (Handshake) object;
-                                final WifiP2pDeviceInfo clientInfo = new WifiP2pDeviceInfo(handshake.getMacAddress(), clientSocket.getInetAddress(), handshake.getPort());
-                                handler.post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        handshakeListener.onHandshake(clientInfo);
-                                    }
-                                });
-
-                                // Send details about the host device
-                                WifiP2pDeviceInfo info = host.getThisDeviceInfo();
-                                ObjectOutputStream outputStream = new ObjectOutputStream(clientSocket.getOutputStream());
-                                outputStream.writeObject(new Handshake(info.getMacAddress(), info.getPort()));
-                                outputStream.flush();
-                                outputStream.close();
-                            } else if(object instanceof Adieu) {
-                                Adieu adieu = (Adieu) object;
-                                final WifiP2pDeviceInfo clientInfo = new WifiP2pDeviceInfo(adieu.getMacAddress(), clientSocket.getInetAddress(), adieu.getPort());
-                                handler.post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        handshakeListener.onAdieu(clientInfo);
-                                    }
-                                });
-                            }
-
-                            inputStream.close();
-                        } catch (ClassNotFoundException | IOException ex) {
-                            Log.e(Direct.TAG, "Failed to register client.");
-                        } finally {
-                            try {
-                                clientSocket.close();
-                            } catch (Exception ex) {
-                                Log.e(Direct.TAG, "Failed to close client socket.");
-                            }
-                        }
-                    }
-                });
-
+                executor.submit(new HostRegistrarRunnable(serverSocket, host, handler, handshakeListener));
                 initializationCompleteListener.onSuccess(serverSocket);
             }
 

@@ -18,8 +18,8 @@ public class ObjectReceiverRunnable extends ServerSocketRunnable {
     private Handler handler;
     private ObjectCallback objectCallback;
 
-    public ObjectReceiverRunnable(ServerSocket registrationSocket, Handler handler, ObjectCallback dataCallback) {
-        super(registrationSocket);
+    public ObjectReceiverRunnable(ServerSocket serverSocket, Handler handler, ObjectCallback dataCallback) {
+        super(serverSocket);
         this.handler = handler;
         this.objectCallback = dataCallback;
     }
@@ -29,25 +29,23 @@ public class ObjectReceiverRunnable extends ServerSocketRunnable {
         try {
             ObjectInputStream inputStream = new ObjectInputStream(new BufferedInputStream(connectedSocket.getInputStream()));
             final Object object = inputStream.readObject();
-            inputStream.close();
-
+            Log.d(Direct.TAG, "Succeeded to receive data.");
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    Log.d(Direct.TAG, "Succeeded to receive data.");
                     objectCallback.onReceived(object);
                 }
             });
-        } catch (Exception ex) {
+        } catch (ClassNotFoundException ex) {
+            Log.e(Direct.TAG, "Failed to read data.");
+        } catch (IOException ex) {
             Log.e(Direct.TAG, "Failed to receive data.");
         } finally {
-            if (connectedSocket != null) {
-                if (connectedSocket.isConnected()) {
-                    try {
-                        connectedSocket.close();
-                    } catch (IOException e) {
-                        Log.e(Direct.TAG, "Failed to close socket.");
-                    }
+            if (connectedSocket != null && connectedSocket.isConnected()) {
+                try {
+                    connectedSocket.close();
+                } catch (IOException e) {
+                    Log.e(Direct.TAG, "Failed to close socket.");
                 }
             }
         }
