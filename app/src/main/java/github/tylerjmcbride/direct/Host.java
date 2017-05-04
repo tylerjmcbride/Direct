@@ -18,6 +18,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -117,7 +118,7 @@ public class Host extends Direct {
 
             @Override
             protected void peersChanged() {
-                pruneDisconnectedClients();
+                pruneLostClients();
             }
 
             @Override
@@ -305,26 +306,28 @@ public class Host extends Direct {
      * registered clients are within range. If any of the existing {@link Host#clients} are out of
      * range they will be pruned.
      */
-    private void pruneDisconnectedClients() {
+    private void pruneLostClients() {
         manager.requestPeers(channel, new PeerListListener() {
             @Override
             public void onPeersAvailable(WifiP2pDeviceList peers) {
-                for(WifiP2pDevice peer : peers.getDeviceList()) {
+                Iterator<WifiP2pDeviceInfo> iterator = clients.keySet().iterator();
+                while (iterator.hasNext()) {
+                    WifiP2pDeviceInfo clientInfo = iterator.next();
                     boolean containsClient = false;
 
-                    for (WifiP2pDeviceInfo clientInfo : clients.keySet()) {
+                    for(WifiP2pDevice peer : peers.getDeviceList()) {
                         if (peer.deviceAddress.equals(clientInfo.getMacAddress())) {
                             containsClient = true;
                         }
+                    }
 
-                        // Prune disconnected client
-                        if(!containsClient) {
-                            Log.d(TAG, clientInfo.getMacAddress() + " has disconnected.");
-                            WifiP2pDevice clientDevice = clients.remove(clientInfo);
+                    // Prune disconnected client
+                    if(!containsClient) {
+                        Log.d(TAG, clientInfo.getMacAddress() + " has disconnected.");
+                        WifiP2pDevice clientDevice = clients.remove(clientInfo);
 
-                            if(clientCallback != null) {
-                                clientCallback.onDisconnected(clientDevice);
-                            }
+                        if(clientCallback != null) {
+                            clientCallback.onDisconnected(clientDevice);
                         }
                     }
                 }

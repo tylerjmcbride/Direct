@@ -20,7 +20,9 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -56,40 +58,45 @@ public class Client extends Direct {
         registrar = new ClientRegistrar(this, handler);
         receiver = new DirectBroadcastReceiver(manager, channel) {
             @Override
-            protected void connectionChanged(WifiP2pInfo p2pInfo, NetworkInfo networkInfo, WifiP2pGroup p2pGroup) {
+            protected void connectionChanged(final WifiP2pInfo p2pInfo, final NetworkInfo networkInfo, final WifiP2pGroup p2pGroup) {
                 if (hostDevice == null && hostRegistrarPort != null && networkInfo.isConnected()) {
                     Log.d(TAG, "Succeeded to connect to host.");
-                    hostDevice = p2pGroup.getOwner();
-                    final InetSocketAddress hostAddress = new InetSocketAddress(p2pInfo.groupOwnerAddress.getHostAddress(), hostRegistrarPort);
-
-                    objectReceiver.start(objectCallback, new ServerSocketInitializationCompleteListener() {
+                    stopDiscovery(new SingleResultCallback() {
                         @Override
-                        public void onSuccess(ServerSocket serverSocket) {
-                            Log.d(TAG, String.format("Succeeded to start object receiver on port %d.", serverSocket.getLocalPort()));
-                            thisDeviceInfo.setPort(serverSocket.getLocalPort());
+                        public void onSuccessOrFailure() {
+                            hostDevice = p2pGroup.getOwner();
+                            final InetSocketAddress hostAddress = new InetSocketAddress(p2pInfo.groupOwnerAddress.getHostAddress(), hostRegistrarPort);
 
-                            registrar.register(hostAddress, new RegisteredWithServerListener() {
+                            objectReceiver.start(objectCallback, new ServerSocketInitializationCompleteListener() {
                                 @Override
-                                public void onSuccess(WifiP2pDeviceInfo info) {
-                                    Log.d(TAG, "Succeeded to register with " + info.getMacAddress() + ".");
-                                    hostDeviceInfo = info;
+                                public void onSuccess(ServerSocket serverSocket) {
+                                    Log.d(TAG, String.format("Succeeded to start object receiver on port %d.", serverSocket.getLocalPort()));
+                                    thisDeviceInfo.setPort(serverSocket.getLocalPort());
 
-                                    if(connectionCallback != null) {
-                                        connectionCallback.onConnected();
-                                    }
+                                    registrar.register(hostAddress, new RegisteredWithServerListener() {
+                                        @Override
+                                        public void onSuccess(WifiP2pDeviceInfo info) {
+                                            Log.d(TAG, "Succeeded to register with " + info.getMacAddress() + ".");
+                                            hostDeviceInfo = info;
+
+                                            if(connectionCallback != null) {
+                                                connectionCallback.onConnected();
+                                            }
+                                        }
+
+                                        @Override
+                                        public void onFailure() {
+                                            Log.d(TAG, "Failed to register with host.");
+                                            objectReceiver.stop();
+                                        }
+                                    });
                                 }
 
                                 @Override
                                 public void onFailure() {
-                                    Log.d(TAG, "Failed to register with host.");
-                                    objectReceiver.stop();
+                                    Log.d(TAG, "Failed to start data receiver.");
                                 }
                             });
-                        }
-
-                        @Override
-                        public void onFailure() {
-                            Log.d(TAG, "Failed to start data receiver.");
                         }
                     });
                 } else {
@@ -156,36 +163,56 @@ public class Client extends Direct {
      * @param resultCallback Invoked upon the success or failure of the request.
      */
     public void startDiscovery(final DiscoveryCallback discoveryCallback, final ResultCallback resultCallback) {
-        if(serviceRequest == null) {
-            serviceRequest = WifiP2pDnsSdServiceRequest.newInstance();
-            this.discoveryCallback = discoveryCallback;
+        manager.clearLocalServices(channel, new ActionListener() {
+            @Override
+            public void onSuccess() {
+                Client.this.discoveryCallback = discoveryCallback;
+                serviceRequest = WifiP2pDnsSdServiceRequest.newInstance();
+                manager.addServiceRequest(channel, serviceRequest, new ActionListener() {
+                    @Override
+                    public void onSuccess() {
+                        Log.d(TAG, "Succeeded to add service request.");
+                        manager.discoverPeers(channel, new ActionListener() {
+                            @Override
+                            public void onSuccess() {
+                                Log.d(TAG, "Succeeded to start peer discovery.");
+                                manager.discoverServices(channel, new ActionListener() {
+                                    @Override
+                                    public void onSuccess() {
+                                        Log.d(TAG, "Succeeded to start service discovery.");
+                                        resultCallback.onSuccess();
+                                    }
 
-            manager.addServiceRequest(channel, serviceRequest, new ActionListener() {
-                @Override
-                public void onSuccess() {
-                    Log.d(TAG, "Succeeded to add service request.");
-                    manager.discoverServices(channel, new ActionListener() {
-                        @Override
-                        public void onSuccess() {
-                            Log.d(TAG, "Succeeded to start service discovery.");
-                            resultCallback.onSuccess();
-                        }
+                                    @Override
+                                    public void onFailure(int reason) {
+                                        Log.d(TAG, "Failed to start service discovery.");
+                                        resultCallback.onFailure();
+                                    }
+                                });
+                            }
 
-                        @Override
-                        public void onFailure(int reason) {
-                            Log.d(TAG, "Failed to start service discovery.");
-                            resultCallback.onFailure();
-                        }
-                    });
-                }
+                            @Override
+                            public void onFailure(int reason) {
+                                Log.d(TAG, "Failed to start peer discovery.");
+                                resultCallback.onFailure();
+                            }
+                        });
+                    }
 
-                @Override
-                public void onFailure(int reason) {
-                    Log.d(TAG, "Failed to add service request.");
-                    resultCallback.onFailure();
-                }
-            });
-        }
+                    @Override
+                    public void onFailure(int reason) {
+                        Log.d(TAG, "Failed to add service request.");
+                        resultCallback.onFailure();
+                    }
+                });
+            }
+
+            @Override
+            public void onFailure(int reason) {
+                Log.d(TAG, "Failed to clear local services.");
+                resultCallback.onFailure();
+            }
+        });
     }
 
     /**
@@ -196,36 +223,34 @@ public class Client extends Direct {
      * @param callback Invoked upon the success or failure of the request.
      */
     public void stopDiscovery(final ResultCallback callback) {
-        if(serviceRequest != null) {
-            manager.removeServiceRequest(channel, serviceRequest, new ActionListener() {
-                @Override
-                public void onSuccess() {
-                    Log.d(TAG, "Succeeded to remove service request.");
-                    serviceRequest = null;
-                    discoveryCallback = null;
-                    nearbyHostDevices.clear();
-                    manager.stopPeerDiscovery(channel, new ActionListener() {
-                        @Override
-                        public void onSuccess() {
-                            Log.d(TAG, "Succeeded to stop peer discovery.");
-                            callback.onSuccess();
-                        }
+        manager.removeServiceRequest(channel, serviceRequest, new ActionListener() {
+            @Override
+            public void onSuccess() {
+                Log.d(TAG, "Succeeded to remove service request.");
+                serviceRequest = null;
+                discoveryCallback = null;
+                nearbyHostDevices.clear();
+                manager.stopPeerDiscovery(channel, new ActionListener() {
+                    @Override
+                    public void onSuccess() {
+                        Log.d(TAG, "Succeeded to stop peer discovery.");
+                        callback.onSuccess();
+                    }
 
-                        @Override
-                        public void onFailure(int reason) {
-                            Log.d(TAG, "Failed to stop peer discovery.");
-                            callback.onSuccess();
-                        }
-                    });
-                }
+                    @Override
+                    public void onFailure(int reason) {
+                        Log.d(TAG, "Failed to stop peer discovery.");
+                        callback.onFailure();
+                    }
+                });
+            }
 
-                @Override
-                public void onFailure(int reason) {
-                    Log.d(TAG, "Failed to remove service request.");
-                    callback.onSuccess();
-                }
-            });
-        }
+            @Override
+            public void onFailure(int reason) {
+                Log.d(TAG, "Failed to remove service request.");
+                callback.onFailure();
+            }
+        });
     }
 
     /**
@@ -388,19 +413,14 @@ public class Client extends Direct {
         manager.requestPeers(channel, new PeerListListener() {
             @Override
             public void onPeersAvailable(WifiP2pDeviceList peers) {
-                for(WifiP2pDevice peer : peers.getDeviceList()) {
-                    boolean containsClient = false;
+                Collection<WifiP2pDevice> peerList = peers.getDeviceList();
+                Iterator<WifiP2pDevice> iterator = nearbyHostDevices.keySet().iterator();
+                while (iterator.hasNext()) {
+                    WifiP2pDevice host = iterator.next();
 
-                    for (WifiP2pDevice nearbyHost : nearbyHostDevices.keySet()) {
-                        if (peer.deviceAddress.equals(nearbyHost.deviceAddress)) {
-                            containsClient = true;
-                        }
-
-                        // Prune lost host
-                        if(!containsClient) {
-                            Log.d(TAG, "Nearby host " + nearbyHost.deviceAddress + " has been lost.");
-                            nearbyHostDevices.remove(nearbyHost);
-                        }
+                    if(!peerList.contains(host)) {
+                        Log.d(TAG, "Host " + host.deviceAddress + " is no longer available.");
+                        nearbyHostDevices.remove(host);
                     }
                 }
             }
