@@ -166,6 +166,7 @@ public class Client extends Direct {
         manager.clearLocalServices(channel, new ActionListener() {
             @Override
             public void onSuccess() {
+                nearbyHostDevices.clear();
                 Client.this.discoveryCallback = discoveryCallback;
                 serviceRequest = WifiP2pDnsSdServiceRequest.newInstance();
                 manager.addServiceRequest(channel, serviceRequest, new ActionListener() {
