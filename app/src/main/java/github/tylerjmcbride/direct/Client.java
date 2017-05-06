@@ -114,8 +114,10 @@ public class Client extends Direct {
 
             @Override
             protected void discoveryChanged(boolean discoveryEnabled) {
-                if(!discoveryEnabled) {
-                    Log.d(TAG, "Succeeded to clear discovery resources.");
+                if(discoveryEnabled){
+                    Log.d(TAG, "Succeeded to start peer discovery.");
+                } else {
+                    Log.d(TAG, "Succeeded to stop peer discovery.");
                     serviceRequest = null;
                     discoveryCallback = null;
                     nearbyHostDevices.clear();
@@ -172,7 +174,7 @@ public class Client extends Direct {
                         manager.discoverPeers(channel, new ActionListener() {
                             @Override
                             public void onSuccess() {
-                                Log.d(TAG, "Succeeded to start peer discovery.");
+                                Log.d(TAG, "Succeeded to request peer discovery.");
                                 manager.discoverServices(channel, new ActionListener() {
                                     @Override
                                     public void onSuccess() {
@@ -191,7 +193,7 @@ public class Client extends Direct {
 
                             @Override
                             public void onFailure(int reason) {
-                                Log.d(TAG, "Failed to start peer discovery.");
+                                Log.d(TAG, "Failed to request peer discovery.");
                                 resultCallback.onFailure();
                             }
                         });
