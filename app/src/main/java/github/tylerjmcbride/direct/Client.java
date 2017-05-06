@@ -114,7 +114,7 @@ public class Client extends Direct {
 
             @Override
             protected void discoveryChanged(boolean discoveryEnabled) {
-                if(discoveryEnabled){
+                if(discoveryEnabled) {
                     Log.d(TAG, "Succeeded to start peer discovery.");
                 } else {
                     Log.d(TAG, "Succeeded to stop peer discovery.");
