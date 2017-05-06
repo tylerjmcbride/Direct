@@ -55,15 +55,14 @@ public class WifiP2pDeviceInfo {
 
         WifiP2pDeviceInfo other = (WifiP2pDeviceInfo) obj;
         if (other == null || other.macAddress == null) {
-            return (macAddress == null);
+            return (this.macAddress == null);
         }
-        return other.macAddress.equals(macAddress);
+
+        return this.macAddress.equals(other.macAddress);
     }
 
     @Override
     public int hashCode() {
-        int result = 17;
-        result = 31 * result + macAddress.hashCode();
-        return result;
+        return macAddress.hashCode();
     }
 }
