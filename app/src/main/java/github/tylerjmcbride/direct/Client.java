@@ -265,7 +265,7 @@ public class Client extends Direct {
             removeGroup(new ResultCallback() {
                 @Override
                 public void onSuccess() {
-                    Log.d(TAG, "Succeeded to terminate previous connection.");
+                    Log.d(TAG, "Succeeded to confirm no previous connection exists.");
                     WifiP2pConfig config = new WifiP2pConfig();
                     config.deviceAddress = hostDevice.deviceAddress;
                     config.groupOwnerIntent = 0;

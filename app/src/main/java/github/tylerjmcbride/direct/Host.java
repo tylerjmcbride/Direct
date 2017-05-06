@@ -166,7 +166,7 @@ public class Host extends Direct {
                 removeGroup(new ResultCallback() {
                     @Override
                     public void onSuccess() {
-                        Log.d(TAG, "Succeeded to terminate previous service.");
+                        Log.d(TAG, "Succeeded to confirm no previous service exists.");
                         objectReceiver.start(dataCallback, new ServerSocketInitializationCompleteListener() {
                             @Override
                             public void onSuccess(ServerSocket serverSocket) {
