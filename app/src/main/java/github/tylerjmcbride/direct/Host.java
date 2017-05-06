@@ -159,73 +159,60 @@ public class Host extends Direct {
      */
     public void startService(final ObjectCallback dataCallback, final ClientCallback clientCallback, final ServiceCallback serviceCallback, final ResultCallback callback) {
         // Clear any previously existing service
-        manager.clearLocalServices(channel, new ActionListener() {
+        stopService(new ResultCallback() {
             @Override
             public void onSuccess() {
-                Log.d(TAG, "Succeeded to clear local services.");
-                removeGroup(new ResultCallback() {
+                Log.d(TAG, "Succeeded to confirm no previous service exists.");
+                objectReceiver.start(dataCallback, new ServerSocketInitializationCompleteListener() {
                     @Override
-                    public void onSuccess() {
-                        Log.d(TAG, "Succeeded to confirm no previous service exists.");
-                        objectReceiver.start(dataCallback, new ServerSocketInitializationCompleteListener() {
+                    public void onSuccess(ServerSocket serverSocket) {
+                        Log.d(TAG, String.format("Succeeded to start object receiver on port %d.", serverSocket.getLocalPort()));
+                        thisDeviceInfo.setPort(serverSocket.getLocalPort());
+
+                        registrar.start(new ServerSocketInitializationCompleteListener() {
                             @Override
-                            public void onSuccess(ServerSocket serverSocket) {
-                                Log.d(TAG, String.format("Succeeded to start object receiver on port %d.", serverSocket.getLocalPort()));
-                                thisDeviceInfo.setPort(serverSocket.getLocalPort());
+                            public void onSuccess(final ServerSocket serverSocket) {
+                                Log.d(TAG, String.format("Succeeded to start registrar on port %d.", serverSocket.getLocalPort()));
 
-                                registrar.start(new ServerSocketInitializationCompleteListener() {
+                                manager.createGroup(channel, new ActionListener() {
                                     @Override
-                                    public void onSuccess(final ServerSocket serverSocket) {
-                                        Log.d(TAG, String.format("Succeeded to start registrar on port %d.", serverSocket.getLocalPort()));
+                                    public void onSuccess() {
+                                        Log.d(TAG, "Succeeded to create group.");
 
-                                        manager.createGroup(channel, new ActionListener() {
+                                        // Reinitialize the service information to reflect the new registration port
+                                        record.put(REGISTRAR_PORT_TAG, Integer.toString(serverSocket.getLocalPort()));
+                                        serviceInfo = WifiP2pDnsSdServiceInfo.newInstance(thisDevice.deviceAddress, SERVICE_TYPE, record);
+
+                                        manager.addLocalService(channel, serviceInfo, new ActionListener() {
                                             @Override
                                             public void onSuccess() {
-                                                Log.d(TAG, "Succeeded to create group.");
-
-                                                // Reinitialize the service information to reflect the new registration port
-                                                record.put(REGISTRAR_PORT_TAG, Integer.toString(serverSocket.getLocalPort()));
-                                                serviceInfo = WifiP2pDnsSdServiceInfo.newInstance(thisDevice.deviceAddress, SERVICE_TYPE, record);
-
-                                                manager.addLocalService(channel, serviceInfo, new ActionListener() {
-                                                    @Override
-                                                    public void onSuccess() {
-                                                        Log.d(TAG, "Succeeded to add local service.");
-                                                        Host.this.clientCallback = clientCallback;
-                                                        Host.this.serviceCallback = serviceCallback;
-                                                        serviceBroadcastingThread = new Thread(new ServiceBroadcastingRunnable());
-                                                        serviceBroadcastingThread.start();
-                                                        callback.onSuccess();
-                                                    }
-
-                                                    @Override
-                                                    public void onFailure(int reason) {
-                                                        Log.d(TAG, "Failed to add local service.");
-                                                        removeGroup(new SingleResultCallback() {
-                                                            @Override
-                                                            public void onSuccessOrFailure() {
-                                                                registrar.stop();
-                                                                objectReceiver.stop();
-                                                                callback.onFailure();
-                                                            }
-                                                        });
-                                                    }
-                                                });
+                                                Log.d(TAG, "Succeeded to add local service.");
+                                                Host.this.clientCallback = clientCallback;
+                                                Host.this.serviceCallback = serviceCallback;
+                                                serviceBroadcastingThread = new Thread(new ServiceBroadcastingRunnable());
+                                                serviceBroadcastingThread.start();
+                                                callback.onSuccess();
                                             }
 
                                             @Override
                                             public void onFailure(int reason) {
-                                                Log.d(TAG, "Failed to create group.");
-                                                registrar.stop();
-                                                objectReceiver.stop();
-                                                callback.onFailure();
+                                                Log.d(TAG, "Failed to add local service.");
+                                                removeGroup(new SingleResultCallback() {
+                                                    @Override
+                                                    public void onSuccessOrFailure() {
+                                                        registrar.stop();
+                                                        objectReceiver.stop();
+                                                        callback.onFailure();
+                                                    }
+                                                });
                                             }
                                         });
                                     }
 
                                     @Override
-                                    public void onFailure() {
-                                        Log.d(TAG, "Failed to start registrar.");
+                                    public void onFailure(int reason) {
+                                        Log.d(TAG, "Failed to create group.");
+                                        registrar.stop();
                                         objectReceiver.stop();
                                         callback.onFailure();
                                     }
@@ -234,7 +221,8 @@ public class Host extends Direct {
 
                             @Override
                             public void onFailure() {
-                                Log.d(TAG, "Failed to start object receiver.");
+                                Log.d(TAG, "Failed to start registrar.");
+                                objectReceiver.stop();
                                 callback.onFailure();
                             }
                         });
@@ -242,15 +230,15 @@ public class Host extends Direct {
 
                     @Override
                     public void onFailure() {
-                        Log.d(TAG, "Failed to terminate previous service.");
+                        Log.d(TAG, "Failed to start object receiver.");
                         callback.onFailure();
                     }
                 });
             }
 
             @Override
-            public void onFailure(int reason) {
-                Log.d(TAG, "Failed to clear local services.");
+            public void onFailure() {
+                Log.d(TAG, "Failed to terminate previous service.");
                 callback.onFailure();
             }
         });
@@ -265,10 +253,10 @@ public class Host extends Direct {
      * @param callback Invoked upon the success or failure of the request.
      */
     public void stopService(final ResultCallback callback) {
-        manager.removeLocalService(channel, serviceInfo, new ActionListener() {
+        manager.clearLocalServices(channel, new ActionListener() {
             @Override
             public void onSuccess() {
-                Log.d(TAG, "Succeeded to remove local service.");
+                Log.d(TAG, "Succeeded to clear local services.");
                 if (serviceBroadcastingThread != null) {
                     serviceBroadcastingThread.interrupt();
                 }
@@ -277,7 +265,7 @@ public class Host extends Direct {
 
             @Override
             public void onFailure(int reason) {
-                Log.d(TAG, "Failed to remove local service.");
+                Log.d(TAG, "Failed to clear local services.");
                 callback.onFailure();
             }
         });

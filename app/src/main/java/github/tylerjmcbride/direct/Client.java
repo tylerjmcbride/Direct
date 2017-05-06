@@ -161,7 +161,7 @@ public class Client extends Direct {
      * @param resultCallback Invoked upon the success or failure of the request.
      */
     public void startDiscovery(final DiscoveryCallback discoveryCallback, final ResultCallback resultCallback) {
-        manager.clearLocalServices(channel, new ActionListener() {
+        manager.clearServiceRequests(channel, new ActionListener() {
             @Override
             public void onSuccess() {
                 serviceRequest = WifiP2pDnsSdServiceRequest.newInstance();
