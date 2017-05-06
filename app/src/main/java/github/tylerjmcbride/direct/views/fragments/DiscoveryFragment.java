@@ -52,6 +52,14 @@ public class DiscoveryFragment extends Fragment {
                 adapter.notifyDataSetChanged();
                 toast(String.format("Found host device %s.", hostDevice.deviceAddress));
             }
+
+            @Override
+            public void onLost(WifiP2pDevice hostDevice) {
+                adapter.clear();
+                adapter.addAll(client.getNearbyHosts());
+                adapter.notifyDataSetChanged();
+                toast(String.format("Lost host device %s.", hostDevice.deviceAddress));
+            }
         }, new ResultCallback() {
             @Override
             public void onSuccess() {

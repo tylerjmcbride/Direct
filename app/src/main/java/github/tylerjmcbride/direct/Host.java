@@ -14,7 +14,6 @@ import android.util.Log;
 import java.io.Serializable;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -30,7 +29,6 @@ import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
 import github.tylerjmcbride.direct.registration.HostRegistrar;
 import github.tylerjmcbride.direct.registration.listeners.HandshakeListener;
 import github.tylerjmcbride.direct.sockets.listeners.ServerSocketInitializationCompleteListener;
-import github.tylerjmcbride.direct.sockets.listeners.SocketInitializationCompleteListener;
 import github.tylerjmcbride.direct.transceivers.DirectBroadcastReceiver;
 import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
 
@@ -78,13 +76,13 @@ public class Host extends Direct {
                 Log.d(TAG, String.format("Succeeded to unregister client %s.", clientInfo.getMacAddress()));
                 WifiP2pDevice clientDevice = clients.remove(clientInfo);
 
-                if(clientCallback != null) {
+                if(clientCallback != null && clientDevice != null) {
                     clientCallback.onDisconnected(clientDevice);
                 }
             }
         });
 
-        receiver = new DirectBroadcastReceiver(manager, channel) {
+        receiver = new DirectBroadcastReceiver() {
             @Override
             protected void connectionChanged(WifiP2pInfo p2pInfo, NetworkInfo networkInfo, WifiP2pGroup p2pGroup) {
                 // The service is available
@@ -140,19 +138,7 @@ public class Host extends Direct {
     public void send(WifiP2pDevice clientDevice, Serializable object, final ResultCallback callback) {
         for(WifiP2pDeviceInfo clientInfo : clients.keySet()) {
             if(clientDevice != null && clientDevice.deviceAddress.equals(clientInfo.getMacAddress())) {
-                objectTransmitter.send(object, new InetSocketAddress(clientInfo.getIpAddress(), clientInfo.getPort()), new SocketInitializationCompleteListener() {
-                    @Override
-                    public void onSuccess(Socket socket) {
-                        callback.onSuccess();
-                    }
-
-                    @Override
-                    public void onFailure() {
-                        callback.onFailure();
-                    }
-                });
-
-                // No use in continuing to iterate
+                objectTransmitter.send(object, new InetSocketAddress(clientInfo.getIpAddress(), clientInfo.getPort()), callback);
                 return;
             }
         }
@@ -177,9 +163,10 @@ public class Host extends Direct {
             @Override
             public void onSuccess() {
                 Log.d(TAG, "Succeeded to clear local services.");
-                removeGroup(new SingleResultCallback() {
+                removeGroup(new ResultCallback() {
                     @Override
-                    public void onSuccessOrFailure() {
+                    public void onSuccess() {
+                        Log.d(TAG, "Succeeded to terminate previous service.");
                         objectReceiver.start(dataCallback, new ServerSocketInitializationCompleteListener() {
                             @Override
                             public void onSuccess(ServerSocket serverSocket) {
@@ -188,17 +175,18 @@ public class Host extends Direct {
 
                                 registrar.start(new ServerSocketInitializationCompleteListener() {
                                     @Override
-                                    public void onSuccess(ServerSocket serverSocket) {
+                                    public void onSuccess(final ServerSocket serverSocket) {
                                         Log.d(TAG, String.format("Succeeded to start registrar on port %d.", serverSocket.getLocalPort()));
-
-                                        // Reinitialize the service information to reflect the new registration port
-                                        record.put(REGISTRAR_PORT_TAG, Integer.toString(serverSocket.getLocalPort()));
-                                        serviceInfo = WifiP2pDnsSdServiceInfo.newInstance(record.get(INSTANCE_NAME_TAG), service.concat("_presence._tcp"), record);
 
                                         manager.createGroup(channel, new ActionListener() {
                                             @Override
                                             public void onSuccess() {
                                                 Log.d(TAG, "Succeeded to create group.");
+
+                                                // Reinitialize the service information to reflect the new registration port
+                                                record.put(REGISTRAR_PORT_TAG, Integer.toString(serverSocket.getLocalPort()));
+                                                serviceInfo = WifiP2pDnsSdServiceInfo.newInstance(thisDevice.deviceAddress, SERVICE_TYPE, record);
+
                                                 manager.addLocalService(channel, serviceInfo, new ActionListener() {
                                                     @Override
                                                     public void onSuccess() {
@@ -250,6 +238,12 @@ public class Host extends Direct {
                                 callback.onFailure();
                             }
                         });
+                    }
+
+                    @Override
+                    public void onFailure() {
+                        Log.d(TAG, "Failed to terminate previous service.");
+                        callback.onFailure();
                     }
                 });
             }

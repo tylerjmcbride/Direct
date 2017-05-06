@@ -8,22 +8,12 @@ import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
-import android.net.wifi.p2p.WifiP2pManager.Channel;
 
 /**
  * Wrapper class to eliminate the need for the ugly {@link BroadcastReceiver#onReceive(Context, Intent)}
  * method.
  */
 public abstract class DirectBroadcastReceiver extends BroadcastReceiver {
-
-    protected WifiP2pManager manager;
-    protected Channel channel;
-
-    public DirectBroadcastReceiver(WifiP2pManager manager, Channel channel) {
-        super();
-        this.manager = manager;
-        this.channel = channel;
-    }
 
     @Override
     public void onReceive(Context context, Intent intent) {

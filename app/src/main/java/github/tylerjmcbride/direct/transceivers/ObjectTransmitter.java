@@ -13,6 +13,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import github.tylerjmcbride.direct.Direct;
+import github.tylerjmcbride.direct.callbacks.ResultCallback;
 import github.tylerjmcbride.direct.sockets.listeners.SocketInitializationCompleteListener;
 import github.tylerjmcbride.direct.sockets.runnables.SocketConnectionRunnable;
 
@@ -29,9 +30,9 @@ public class ObjectTransmitter {
      * Sends data to the respective address.
      * @param object The {@link Serializable} object to send.
      * @param address The {@link InetSocketAddress}.
-     * @param listener The {@link SocketInitializationCompleteListener}.
+     * @param callback Invoked upon the success or failure.
      */
-    public void send(final Serializable object, InetSocketAddress address, final SocketInitializationCompleteListener listener) {
+    public void send(final Serializable object, InetSocketAddress address, final ResultCallback callback) {
         executor.submit(new SocketConnectionRunnable(address, new SocketInitializationCompleteListener() {
             @Override
             public void onSuccess(final Socket socket) {
@@ -40,9 +41,22 @@ public class ObjectTransmitter {
                     outputStream.writeObject(object);
                     outputStream.flush();
                     outputStream.close();
+
                     Log.d(Direct.TAG, "Succeeded to send data.");
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            callback.onSuccess();
+                        }
+                    });
                 } catch (IOException ex) {
                     Log.e(Direct.TAG, "Failed to send data.");
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            callback.onFailure();
+                        }
+                    });
                 } finally {
                     if (socket != null) {
                         if (socket.isConnected()) {
@@ -61,7 +75,7 @@ public class ObjectTransmitter {
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
-                        listener.onFailure();
+                        callback.onFailure();
                     }
                 });
             }

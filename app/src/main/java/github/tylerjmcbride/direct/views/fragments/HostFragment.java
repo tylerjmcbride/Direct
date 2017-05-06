@@ -1,5 +1,6 @@
 package github.tylerjmcbride.direct.views.fragments;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
@@ -10,6 +11,7 @@ import android.widget.Button;
 
 import github.tylerjmcbride.direct.Host;
 import github.tylerjmcbride.direct.R;
+import github.tylerjmcbride.direct.views.activities.DirectActivity;
 
 public class HostFragment extends Fragment {
 
@@ -37,6 +39,14 @@ public class HostFragment extends Fragment {
 
             // Commit the transaction
             transaction.commit();
+            }
+        });
+
+        Button backButton = (Button) view.findViewById(R.id.back);
+        backButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(getActivity(), DirectActivity.class));
             }
         });
 

@@ -18,7 +18,6 @@ import android.util.Log;
 import java.io.Serializable;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -35,7 +34,6 @@ import github.tylerjmcbride.direct.registration.ClientRegistrar;
 import github.tylerjmcbride.direct.registration.listeners.RegisteredWithServerListener;
 import github.tylerjmcbride.direct.registration.listeners.UnregisteredWithServerListener;
 import github.tylerjmcbride.direct.sockets.listeners.ServerSocketInitializationCompleteListener;
-import github.tylerjmcbride.direct.sockets.listeners.SocketInitializationCompleteListener;
 import github.tylerjmcbride.direct.transceivers.DirectBroadcastReceiver;
 import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
 
@@ -56,7 +54,7 @@ public class Client extends Direct {
     public Client(Application application, String service) {
         super(application, service);
         registrar = new ClientRegistrar(this, handler);
-        receiver = new DirectBroadcastReceiver(manager, channel) {
+        receiver = new DirectBroadcastReceiver() {
             @Override
             protected void connectionChanged(final WifiP2pInfo p2pInfo, final NetworkInfo networkInfo, final WifiP2pGroup p2pGroup) {
                 if (hostDevice == null && hostRegistrarPort != null && networkInfo.isConnected()) {
@@ -115,6 +113,16 @@ public class Client extends Direct {
             }
 
             @Override
+            protected void discoveryChanged(boolean discoveryEnabled) {
+                if(!discoveryEnabled) {
+                    Log.d(TAG, "Succeeded to clear discovery resources.");
+                    serviceRequest = null;
+                    discoveryCallback = null;
+                    nearbyHostDevices.clear();
+                }
+            }
+
+            @Override
             protected void peersChanged() {
                 pruneLostHosts();
             }
@@ -137,17 +145,7 @@ public class Client extends Direct {
      */
     public void send(Serializable object, final ResultCallback callback) {
         if(hostDevice != null && hostDeviceInfo != null) {
-            objectTransmitter.send(object, new InetSocketAddress(hostDeviceInfo.getIpAddress(), hostDeviceInfo.getPort()), new SocketInitializationCompleteListener() {
-                @Override
-                public void onSuccess(Socket socket) {
-                    callback.onSuccess();
-                }
-
-                @Override
-                public void onFailure() {
-                    callback.onFailure();
-                }
-            });
+            objectTransmitter.send(object, new InetSocketAddress(hostDeviceInfo.getIpAddress(), hostDeviceInfo.getPort()), callback);
         } else {
             callback.onFailure();
         }
@@ -166,8 +164,6 @@ public class Client extends Direct {
         manager.clearLocalServices(channel, new ActionListener() {
             @Override
             public void onSuccess() {
-                nearbyHostDevices.clear();
-                Client.this.discoveryCallback = discoveryCallback;
                 serviceRequest = WifiP2pDnsSdServiceRequest.newInstance();
                 manager.addServiceRequest(channel, serviceRequest, new ActionListener() {
                     @Override
@@ -181,6 +177,7 @@ public class Client extends Direct {
                                     @Override
                                     public void onSuccess() {
                                         Log.d(TAG, "Succeeded to start service discovery.");
+                                        Client.this.discoveryCallback = discoveryCallback;
                                         resultCallback.onSuccess();
                                     }
 
@@ -224,13 +221,10 @@ public class Client extends Direct {
      * @param callback Invoked upon the success or failure of the request.
      */
     public void stopDiscovery(final ResultCallback callback) {
-        manager.removeServiceRequest(channel, serviceRequest, new ActionListener() {
+        manager.clearServiceRequests(channel, new ActionListener() {
             @Override
             public void onSuccess() {
-                Log.d(TAG, "Succeeded to remove service request.");
-                serviceRequest = null;
-                discoveryCallback = null;
-                nearbyHostDevices.clear();
+                Log.d(TAG, "Succeeded to clear service requests.");
                 manager.stopPeerDiscovery(channel, new ActionListener() {
                     @Override
                     public void onSuccess() {
@@ -248,7 +242,7 @@ public class Client extends Direct {
 
             @Override
             public void onFailure(int reason) {
-                Log.d(TAG, "Failed to remove service request.");
+                Log.d(TAG, "Failed to clear service requests.");
                 callback.onFailure();
             }
         });
@@ -268,9 +262,10 @@ public class Client extends Direct {
             this.connectionCallback = connectionCallback;
 
             // Attempt to terminate previous connection
-            removeGroup(new SingleResultCallback() {
+            removeGroup(new ResultCallback() {
                 @Override
-                public void onSuccessOrFailure() {
+                public void onSuccess() {
+                    Log.d(TAG, "Succeeded to terminate previous connection.");
                     WifiP2pConfig config = new WifiP2pConfig();
                     config.deviceAddress = hostDevice.deviceAddress;
                     config.groupOwnerIntent = 0;
@@ -288,6 +283,12 @@ public class Client extends Direct {
                             callback.onFailure();
                         }
                     });
+                }
+
+                @Override
+                public void onFailure() {
+                    Log.d(TAG, "Failed to terminate previous connection.");
+                    callback.onFailure();
                 }
             });
         } else {
@@ -417,11 +418,20 @@ public class Client extends Direct {
                 Collection<WifiP2pDevice> peerList = peers.getDeviceList();
                 Iterator<WifiP2pDevice> iterator = nearbyHostDevices.keySet().iterator();
                 while (iterator.hasNext()) {
-                    WifiP2pDevice host = iterator.next();
+                    final WifiP2pDevice host = iterator.next();
 
                     if(!peerList.contains(host)) {
                         Log.d(TAG, "Host " + host.deviceAddress + " is no longer available.");
                         nearbyHostDevices.remove(host);
+
+                        if(discoveryCallback != null) {
+                            handler.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    discoveryCallback.onLost(host);
+                                }
+                            });
+                        }
                     }
                 }
             }
