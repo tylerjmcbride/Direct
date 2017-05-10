@@ -5,7 +5,6 @@ import android.util.Log;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.SocketTimeoutException;
 
 import github.tylerjmcbride.direct.Direct;
 import github.tylerjmcbride.direct.callbacks.ResultCallback;
@@ -52,7 +51,7 @@ public class SocketConnectionRunnable implements Runnable {
             socket.setReceiveBufferSize(DEFAULT_BUFFER_SIZE);
             socket.setSendBufferSize(DEFAULT_BUFFER_SIZE);
             listener.onSuccess(socket);
-        } catch(SocketTimeoutException e) {
+        } catch(IOException e) {
             // Attempt to connect to socket once again
             if(attemptsLeft > 0) {
                 Log.d(Direct.TAG, String.format("Failed to connect to %s, will attempt to retry.", address));
@@ -61,8 +60,6 @@ public class SocketConnectionRunnable implements Runnable {
                 Log.d(Direct.TAG, String.format("Failed to connect to %s.", address));
                 listener.onFailure();
             }
-        } catch (IOException e) {
-            listener.onFailure();
         }
     }
 }

@@ -7,6 +7,8 @@ import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager.ActionListener;
+import android.net.wifi.p2p.WifiP2pManager.ConnectionInfoListener;
+import android.net.wifi.p2p.WifiP2pManager.GroupInfoListener;
 import android.net.wifi.p2p.WifiP2pManager.PeerListListener;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
 import android.util.Log;
@@ -21,6 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import github.tylerjmcbride.direct.broadcasts.DirectBroadcastReceiver;
 import github.tylerjmcbride.direct.callbacks.ClientCallback;
 import github.tylerjmcbride.direct.callbacks.ResultCallback;
 import github.tylerjmcbride.direct.callbacks.ServiceCallback;
@@ -29,7 +32,6 @@ import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
 import github.tylerjmcbride.direct.registration.HostRegistrar;
 import github.tylerjmcbride.direct.registration.listeners.HandshakeListener;
 import github.tylerjmcbride.direct.sockets.listeners.ServerSocketInitializationCompleteListener;
-import github.tylerjmcbride.direct.transceivers.DirectBroadcastReceiver;
 import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
 
 public class Host extends Direct {
@@ -84,33 +86,49 @@ public class Host extends Direct {
 
         receiver = new DirectBroadcastReceiver() {
             @Override
-            protected void connectionChanged(WifiP2pInfo p2pInfo, NetworkInfo networkInfo, WifiP2pGroup p2pGroup) {
-                // The service is available
-                if (p2pInfo.groupFormed) { // No need to check {@link WifiP2pInfo#isGroupOwner} as this device is dedicated to hosting the service
-                    Collection<WifiP2pDevice> clientList = p2pGroup.getClientList();
+            protected void connectionChanged(NetworkInfo networkInfo) {
+                if(networkInfo.isAvailable()) {
+                    Log.d(TAG, "Succeeded to confirm network connectivity is available.");
+                    manager.requestConnectionInfo(channel, new ConnectionInfoListener() {
+                        @Override
+                        public void onConnectionInfoAvailable(final WifiP2pInfo p2pInfo) {
+                            Log.d(TAG, "Succeeded to retrieve connection information.");
+                            manager.requestGroupInfo(channel, new GroupInfoListener() {
+                                @Override
+                                public void onGroupInfoAvailable(WifiP2pGroup p2pGroup) {
+                                    Log.d(TAG, "Succeeded to retrieve group information.");
+                                    if(p2pGroup != null) {
+                                        Collection<WifiP2pDevice> clientList = p2pGroup.getClientList();
 
-                    // Remove clients whom no longer are connected
-                    for(WifiP2pDeviceInfo clientInfo : clients.keySet()) {
-                        if(!clientList.contains(clients.get(clientInfo))) {
-                            Log.d(TAG, clientInfo.getMacAddress() + " has disconnected.");
-                            WifiP2pDevice clientDevice = clients.remove(clientInfo);
+                                        // Remove clients whom no longer are connected
+                                        for (WifiP2pDeviceInfo clientInfo : clients.keySet()) {
+                                            if (!clientList.contains(clients.get(clientInfo))) {
+                                                Log.d(TAG, clientInfo.getMacAddress() + " has disconnected.");
+                                                WifiP2pDevice clientDevice = clients.remove(clientInfo);
 
-                            if(clientCallback != null) {
-                                clientCallback.onDisconnected(clientDevice);
-                            }
+                                                if (clientCallback != null) {
+                                                    clientCallback.onDisconnected(clientDevice);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            });
                         }
-                    }
+                    });
                 } else {
-                    // The service has concluded
-                    if(serviceCallback != null) {
-                        serviceCallback.onServiceStopped();
-                    }
+                    Log.d(TAG, "Succeeded to confirm network connectivity is available.");
+                    clearResources();
+                }
+            }
 
-                    clientCallback = null;
-                    serviceCallback = null;
-                    registrar.stop();
-                    objectReceiver.stop();
-                    clients.clear();
+            @Override
+            protected void stateChanged(boolean wifiEnabled) {
+                if(wifiEnabled) {
+                    Log.d(TAG, "Succeeded to confirm Wi-Fi P2P availability.");
+                } else {
+                    Log.d(TAG, "Failed to confirm Wi-Fi P2P availability.");
+                    clearResources();
                 }
             }
 
@@ -159,10 +177,9 @@ public class Host extends Direct {
      */
     public void startService(final ObjectCallback dataCallback, final ClientCallback clientCallback, final ServiceCallback serviceCallback, final ResultCallback callback) {
         // Clear any previously existing service
-        stopService(new ResultCallback() {
+        stopService(new SingleResultCallback() {
             @Override
-            public void onSuccess() {
-                Log.d(TAG, "Succeeded to confirm no previous service exists.");
+            public void onSuccessOrFailure() {
                 objectReceiver.start(dataCallback, new ServerSocketInitializationCompleteListener() {
                     @Override
                     public void onSuccess(ServerSocket serverSocket) {
@@ -174,44 +191,24 @@ public class Host extends Direct {
                             public void onSuccess(final ServerSocket serverSocket) {
                                 Log.d(TAG, String.format("Succeeded to start registrar on port %d.", serverSocket.getLocalPort()));
 
-                                manager.createGroup(channel, new ActionListener() {
+                                // Reinitialize the service information to reflect the new registration port
+                                record.put(REGISTRAR_PORT_TAG, Integer.toString(serverSocket.getLocalPort()));
+                                serviceInfo = WifiP2pDnsSdServiceInfo.newInstance(thisDevice.deviceAddress, SERVICE_TYPE, record);
+
+                                manager.addLocalService(channel, serviceInfo, new ActionListener() {
                                     @Override
                                     public void onSuccess() {
-                                        Log.d(TAG, "Succeeded to create group.");
-
-                                        // Reinitialize the service information to reflect the new registration port
-                                        record.put(REGISTRAR_PORT_TAG, Integer.toString(serverSocket.getLocalPort()));
-                                        serviceInfo = WifiP2pDnsSdServiceInfo.newInstance(thisDevice.deviceAddress, SERVICE_TYPE, record);
-
-                                        manager.addLocalService(channel, serviceInfo, new ActionListener() {
-                                            @Override
-                                            public void onSuccess() {
-                                                Log.d(TAG, "Succeeded to add local service.");
-                                                Host.this.clientCallback = clientCallback;
-                                                Host.this.serviceCallback = serviceCallback;
-                                                serviceBroadcastingThread = new Thread(new ServiceBroadcastingRunnable());
-                                                serviceBroadcastingThread.start();
-                                                callback.onSuccess();
-                                            }
-
-                                            @Override
-                                            public void onFailure(int reason) {
-                                                Log.d(TAG, "Failed to add local service.");
-                                                removeGroup(new SingleResultCallback() {
-                                                    @Override
-                                                    public void onSuccessOrFailure() {
-                                                        registrar.stop();
-                                                        objectReceiver.stop();
-                                                        callback.onFailure();
-                                                    }
-                                                });
-                                            }
-                                        });
+                                        Log.d(TAG, "Succeeded to add local service.");
+                                        Host.this.clientCallback = clientCallback;
+                                        Host.this.serviceCallback = serviceCallback;
+                                        serviceBroadcastingThread = new Thread(new ServiceBroadcastingRunnable());
+                                        serviceBroadcastingThread.start();
+                                        callback.onSuccess();
                                     }
 
                                     @Override
                                     public void onFailure(int reason) {
-                                        Log.d(TAG, "Failed to create group.");
+                                        Log.d(TAG, "Failed to add local service.");
                                         registrar.stop();
                                         objectReceiver.stop();
                                         callback.onFailure();
@@ -235,12 +232,6 @@ public class Host extends Direct {
                     }
                 });
             }
-
-            @Override
-            public void onFailure() {
-                Log.d(TAG, "Failed to terminate previous service.");
-                callback.onFailure();
-            }
         });
     }
 
@@ -260,6 +251,8 @@ public class Host extends Direct {
                 if (serviceBroadcastingThread != null) {
                     serviceBroadcastingThread.interrupt();
                 }
+
+                clearResources();
                 removeGroup(callback);
             }
 
@@ -317,6 +310,18 @@ public class Host extends Direct {
         });
     }
 
+    private void clearResources() {
+        if(serviceCallback != null) {
+            serviceCallback.onServiceStopped();
+            serviceCallback = null;
+        }
+
+        clientCallback = null;
+        registrar.stop();
+        objectReceiver.stop();
+        clients.clear();
+    }
+
     /**
      * If this instance is garbage collected, attempt to end the service.
      * @throws Throwable Throws any given exception.
@@ -335,22 +340,14 @@ public class Host extends Direct {
      */
     class ServiceBroadcastingRunnable implements Runnable {
 
-        private static final int SERVICE_BROADCASTING_INTERVAL = 1000;
+        private static final int SERVICE_BROADCASTING_INTERVAL = 5000;
 
         @Override
         public void run() {
             while (!Thread.currentThread().isInterrupted()) {
                 try {
                     Thread.sleep(SERVICE_BROADCASTING_INTERVAL);
-                    manager.discoverPeers(channel, new ActionListener() {
-                        @Override
-                        public void onSuccess() {
-                        }
-
-                        @Override
-                        public void onFailure(int error) {
-                        }
-                    });
+                    manager.discoverPeers(channel, null);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
