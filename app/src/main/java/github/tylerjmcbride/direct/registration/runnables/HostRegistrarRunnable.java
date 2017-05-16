@@ -6,7 +6,6 @@ import android.util.Log;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.net.ServerSocket;
 import java.net.Socket;
 
 import github.tylerjmcbride.direct.Direct;
@@ -15,18 +14,17 @@ import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
 import github.tylerjmcbride.direct.registration.listeners.HandshakeListener;
 import github.tylerjmcbride.direct.registration.model.Adieu;
 import github.tylerjmcbride.direct.registration.model.Handshake;
-import github.tylerjmcbride.direct.sockets.runnables.ServerSocketRunnable;
+import github.tylerjmcbride.direct.sockets.ServerSocketRunnable;
+import github.tylerjmcbride.direct.sockets.listeners.ServerSocketInitializationListener;
 
 public class HostRegistrarRunnable extends ServerSocketRunnable {
 
     private Host host;
-    private Handler handler;
     private HandshakeListener handshakeListener;
 
-    public HostRegistrarRunnable(ServerSocket serverSocket, Host host, Handler handler, HandshakeListener handshakeListener) {
-        super(serverSocket);
+    public HostRegistrarRunnable(int port, int maxServerConnections, Handler handler, Host host, HandshakeListener handshakeListener, ServerSocketInitializationListener listener) {
+        super(port, maxServerConnections, handler, listener);
         this.host = host;
-        this.handler = handler;
         this.handshakeListener = handshakeListener;
     }
 

@@ -9,9 +9,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import github.tylerjmcbride.direct.Direct;
+import github.tylerjmcbride.direct.sockets.ServerSocketRunnable;
+import github.tylerjmcbride.direct.sockets.listeners.ServerSocketInitializationListener;
 import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
-import github.tylerjmcbride.direct.sockets.ServerSockets;
-import github.tylerjmcbride.direct.sockets.listeners.ServerSocketInitializationCompleteListener;
 import github.tylerjmcbride.direct.transceivers.runnables.ObjectReceiverRunnable;
 
 public class ObjectReceiver {
@@ -31,30 +31,37 @@ public class ObjectReceiver {
     /**
      * Starts the data receiver.
      * @param objectCallback The {@link ObjectCallback} to handle received objects.
-     * @param initializationListener The {@link ServerSocketInitializationCompleteListener} to capture the result of
+     * @param listener The {@link ServerSocketInitializationListener} to capture the result of
      *                 the initialization.
      */
-    public void start(final ObjectCallback objectCallback, final ServerSocketInitializationCompleteListener initializationListener) {
-        ServerSockets.initializeServerSocket(DEFAULT_RECEIVER_PORT, MAX_SERVER_CONNECTIONS, handler, new ServerSocketInitializationCompleteListener() {
+    public void start(final ObjectCallback objectCallback, final ServerSocketInitializationListener listener) {
+        executor.execute(new ObjectReceiverRunnable(DEFAULT_RECEIVER_PORT, MAX_SERVER_CONNECTIONS, handler, objectCallback, new ServerSocketInitializationListener() {
             @Override
-            public void onSuccess(ServerSocket serverSocket) {
-                Log.d(Direct.TAG, String.format("Succeeded to initialize receiver socket on port %d.", serverSocket.getLocalPort()));
+            public void onSuccess(final ServerSocket serverSocket) {
                 ObjectReceiver.this.serverSocket = serverSocket;
-                executor.submit(new ObjectReceiverRunnable(serverSocket, handler, objectCallback));
-                initializationListener.onSuccess(serverSocket);
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        listener.onSuccess(serverSocket);
+                    }
+                });
             }
 
             @Override
             public void onFailure() {
-                Log.e(Direct.TAG, "Failed to initialize receiver socket.");
-                initializationListener.onFailure();
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        listener.onFailure();
+                    }
+                });
             }
-        });
+        }));
     }
 
     /**
      * Stops the object receiver. Will invoke {@link ServerSocket#close()} which will effectively
-     * kill the {@link Thread} running the {@link github.tylerjmcbride.direct.sockets.runnables.ServerSocketRunnable}.
+     * kill the {@link Thread} running the {@link ServerSocketRunnable}.
      */
     public void stop() {
         if(serverSocket != null) {

@@ -13,8 +13,8 @@ import github.tylerjmcbride.direct.Direct;
 import github.tylerjmcbride.direct.Host;
 import github.tylerjmcbride.direct.registration.listeners.HandshakeListener;
 import github.tylerjmcbride.direct.registration.runnables.HostRegistrarRunnable;
-import github.tylerjmcbride.direct.sockets.ServerSockets;
-import github.tylerjmcbride.direct.sockets.listeners.ServerSocketInitializationCompleteListener;
+import github.tylerjmcbride.direct.sockets.ServerSocketRunnable;
+import github.tylerjmcbride.direct.sockets.listeners.ServerSocketInitializationListener;
 
 /**
  * A {@link HostRegistrar} is in charge of handling the registration of client {@link WifiP2pDevice}s.
@@ -39,30 +39,37 @@ public class HostRegistrar {
 
     /**
      * Starts the registration process.
-     * @param initializationCompleteListener The {@link ServerSocketInitializationCompleteListener} to capture the result of
+     * @param listener The {@link ServerSocketInitializationListener} to capture the result of
      *                 the initialization.
      */
-    public void start(final ServerSocketInitializationCompleteListener initializationCompleteListener) {
-        ServerSockets.initializeServerSocket(DEFAULT_REGISTRATION_PORT, MAX_SERVER_CONNECTIONS, handler, new ServerSocketInitializationCompleteListener() {
+    public void start(final ServerSocketInitializationListener listener) {
+        executor.execute(new HostRegistrarRunnable(DEFAULT_REGISTRATION_PORT, MAX_SERVER_CONNECTIONS, handler, host, handshakeListener, new ServerSocketInitializationListener() {
             @Override
-            public void onSuccess(ServerSocket serverSocket) {
-                Log.d(Direct.TAG, String.format("Succeeded to initialize registration socket on port %d.", serverSocket.getLocalPort()));
+            public void onSuccess(final ServerSocket serverSocket) {
                 HostRegistrar.this.serverSocket = serverSocket;
-                executor.submit(new HostRegistrarRunnable(serverSocket, host, handler, handshakeListener));
-                initializationCompleteListener.onSuccess(serverSocket);
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        listener.onSuccess(serverSocket);
+                    }
+                });
             }
 
             @Override
             public void onFailure() {
-                Log.e(Direct.TAG, "Failed to initialize registration socket.");
-                initializationCompleteListener.onFailure();
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        listener.onFailure();
+                    }
+                });
             }
-        });
+        }));
     }
 
     /**
      * Stops the registration process. Will invoke {@link ServerSocket#close()} which will effectively
-     * kill the {@link Thread} running the {@link github.tylerjmcbride.direct.sockets.runnables.ServerSocketRunnable}.
+     * kill the {@link Thread} running the {@link ServerSocketRunnable}.
      */
     public void stop() {
         if(serverSocket != null) {

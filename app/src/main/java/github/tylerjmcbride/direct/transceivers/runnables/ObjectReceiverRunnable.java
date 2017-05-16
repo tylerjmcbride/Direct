@@ -6,22 +6,20 @@ import android.util.Log;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.net.ServerSocket;
 import java.net.Socket;
 
 import github.tylerjmcbride.direct.Direct;
-import github.tylerjmcbride.direct.sockets.runnables.ServerSocketRunnable;
+import github.tylerjmcbride.direct.sockets.ServerSocketRunnable;
+import github.tylerjmcbride.direct.sockets.listeners.ServerSocketInitializationListener;
 import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
 
 public class ObjectReceiverRunnable extends ServerSocketRunnable {
 
-    private Handler handler;
     private ObjectCallback objectCallback;
 
-    public ObjectReceiverRunnable(ServerSocket serverSocket, Handler handler, ObjectCallback dataCallback) {
-        super(serverSocket);
-        this.handler = handler;
-        this.objectCallback = dataCallback;
+    public ObjectReceiverRunnable(int port, int maxServerConnections, Handler handler, ObjectCallback objectCallback, ServerSocketInitializationListener listener) {
+        super(port, maxServerConnections, handler, listener);
+        this.objectCallback = objectCallback;
     }
 
     @Override

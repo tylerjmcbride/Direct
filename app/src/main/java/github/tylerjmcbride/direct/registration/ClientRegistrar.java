@@ -19,7 +19,7 @@ import github.tylerjmcbride.direct.registration.listeners.UnregisteredWithServer
 import github.tylerjmcbride.direct.registration.model.Adieu;
 import github.tylerjmcbride.direct.registration.model.Handshake;
 import github.tylerjmcbride.direct.sockets.listeners.SocketInitializationCompleteListener;
-import github.tylerjmcbride.direct.sockets.runnables.SocketConnectionRunnable;
+import github.tylerjmcbride.direct.sockets.SocketRunnable;
 
 public class ClientRegistrar {
 
@@ -34,7 +34,7 @@ public class ClientRegistrar {
     }
 
     public void register(InetSocketAddress address, final RegisteredWithServerListener registeredWithServerListener) {
-        executor.submit(new SocketConnectionRunnable(address, new SocketInitializationCompleteListener() {
+        executor.submit(new SocketRunnable(address, new SocketInitializationCompleteListener() {
             @Override
             public void onSuccess(final Socket hostSocket) {
                 try {
@@ -90,7 +90,7 @@ public class ClientRegistrar {
     }
 
     public void unregister(InetSocketAddress address, final UnregisteredWithServerListener unregisteredWithServerListener) {
-        executor.submit(new SocketConnectionRunnable(address, new SocketInitializationCompleteListener() {
+        executor.submit(new SocketRunnable(address, new SocketInitializationCompleteListener() {
             @Override
             public void onSuccess(final Socket hostSocket) {
                 try {

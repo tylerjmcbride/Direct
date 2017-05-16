@@ -36,7 +36,7 @@ import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
 import github.tylerjmcbride.direct.registration.ClientRegistrar;
 import github.tylerjmcbride.direct.registration.listeners.RegisteredWithServerListener;
 import github.tylerjmcbride.direct.registration.listeners.UnregisteredWithServerListener;
-import github.tylerjmcbride.direct.sockets.listeners.ServerSocketInitializationCompleteListener;
+import github.tylerjmcbride.direct.sockets.listeners.ServerSocketInitializationListener;
 import github.tylerjmcbride.direct.broadcasts.DirectBroadcastReceiver;
 import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
 
@@ -74,7 +74,7 @@ public class Client extends Direct {
                                     final InetSocketAddress hostAddress = new InetSocketAddress(p2pInfo.groupOwnerAddress.getHostAddress(), hostRegistrarPort);
                                     hostDevice = p2pGroup.getOwner();
 
-                                    objectReceiver.start(objectCallback, new ServerSocketInitializationCompleteListener() {
+                                    objectReceiver.start(objectCallback, new ServerSocketInitializationListener() {
                                         @Override
                                         public void onSuccess(ServerSocket serverSocket) {
                                             Log.d(TAG, String.format("Succeeded to start object receiver on port %d.", serverSocket.getLocalPort()));
@@ -459,6 +459,10 @@ public class Client extends Direct {
         });
     }
 
+    /**
+     * Cleans the resources, this method should be called after a disconnection with the
+     * host device.
+     */
     private void clearResources() {
         if(connectionCallback != null) {
             connectionCallback.onDisconnected();

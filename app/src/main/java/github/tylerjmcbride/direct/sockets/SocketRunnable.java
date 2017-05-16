@@ -1,4 +1,4 @@
-package github.tylerjmcbride.direct.sockets.runnables;
+package github.tylerjmcbride.direct.sockets;
 
 import android.util.Log;
 
@@ -11,12 +11,11 @@ import github.tylerjmcbride.direct.callbacks.ResultCallback;
 import github.tylerjmcbride.direct.sockets.listeners.SocketInitializationCompleteListener;
 
 /**
- * To prevent {@link android.os.NetworkOnMainThreadException}, the initialization of the client
- * registration socket will be done on a separate thread.
+ * To prevent a {@link android.os.NetworkOnMainThreadException}, this runnable should not be run on
+ * the main thread.
  */
-public class SocketConnectionRunnable implements Runnable {
+public class SocketRunnable extends AbstractSocketRunnable implements Runnable {
 
-    private static final int DEFAULT_BUFFER_SIZE = 8192;
     private static final int SOCKET_TIMEOUT = 2000;
     private static final int MAX_SOCKET_ATTEMPTS = 15;
 
@@ -28,14 +27,14 @@ public class SocketConnectionRunnable implements Runnable {
      * @param address The {@link InetSocketAddress} of the server socket.
      * @param listener The {@link ResultCallback} to capture the success of a given method call.
      */
-    public SocketConnectionRunnable(InetSocketAddress address, SocketInitializationCompleteListener listener) {
+    public SocketRunnable(InetSocketAddress address, SocketInitializationCompleteListener listener) {
         this.address = address;
         this.listener = listener;
     }
 
     @Override
     public void run() {
-        connect(MAX_SOCKET_ATTEMPTS);
+        connect(MAX_SOCKET_ATTEMPTS - 1);
     }
 
     /**

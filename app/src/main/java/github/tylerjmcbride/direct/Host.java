@@ -31,7 +31,7 @@ import github.tylerjmcbride.direct.callbacks.SingleResultCallback;
 import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
 import github.tylerjmcbride.direct.registration.HostRegistrar;
 import github.tylerjmcbride.direct.registration.listeners.HandshakeListener;
-import github.tylerjmcbride.direct.sockets.listeners.ServerSocketInitializationCompleteListener;
+import github.tylerjmcbride.direct.sockets.listeners.ServerSocketInitializationListener;
 import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
 
 public class Host extends Direct {
@@ -180,13 +180,13 @@ public class Host extends Direct {
         stopService(new SingleResultCallback() {
             @Override
             public void onSuccessOrFailure() {
-                objectReceiver.start(dataCallback, new ServerSocketInitializationCompleteListener() {
+                objectReceiver.start(dataCallback, new ServerSocketInitializationListener() {
                     @Override
                     public void onSuccess(ServerSocket serverSocket) {
                         Log.d(TAG, String.format("Succeeded to start object receiver on port %d.", serverSocket.getLocalPort()));
                         thisDeviceInfo.setPort(serverSocket.getLocalPort());
 
-                        registrar.start(new ServerSocketInitializationCompleteListener() {
+                        registrar.start(new ServerSocketInitializationListener() {
                             @Override
                             public void onSuccess(final ServerSocket serverSocket) {
                                 Log.d(TAG, String.format("Succeeded to start registrar on port %d.", serverSocket.getLocalPort()));
@@ -310,6 +310,9 @@ public class Host extends Direct {
         });
     }
 
+    /**
+     * Cleans the resources, this method should be called after the service has been concluded.
+     */
     private void clearResources() {
         if(serviceCallback != null) {
             serviceCallback.onServiceStopped();

@@ -5,7 +5,7 @@ import java.net.ServerSocket;
 /**
  * Interface for callback invocation on an action.
  */
-public interface ServerSocketInitializationCompleteListener {
+public interface ServerSocketInitializationListener {
     void onSuccess(ServerSocket serverSocket);
     void onFailure();
 }

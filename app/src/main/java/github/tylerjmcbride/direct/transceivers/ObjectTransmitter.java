@@ -15,7 +15,7 @@ import java.util.concurrent.Executors;
 import github.tylerjmcbride.direct.Direct;
 import github.tylerjmcbride.direct.callbacks.ResultCallback;
 import github.tylerjmcbride.direct.sockets.listeners.SocketInitializationCompleteListener;
-import github.tylerjmcbride.direct.sockets.runnables.SocketConnectionRunnable;
+import github.tylerjmcbride.direct.sockets.SocketRunnable;
 
 public class ObjectTransmitter {
 
@@ -33,7 +33,7 @@ public class ObjectTransmitter {
      * @param callback Invoked upon the success or failure.
      */
     public void send(final Serializable object, InetSocketAddress address, final ResultCallback callback) {
-        executor.submit(new SocketConnectionRunnable(address, new SocketInitializationCompleteListener() {
+        executor.submit(new SocketRunnable(address, new SocketInitializationCompleteListener() {
             @Override
             public void onSuccess(final Socket socket) {
                 try {
