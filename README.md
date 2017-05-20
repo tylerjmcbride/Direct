@@ -81,6 +81,7 @@ host.stopService(new ResultCallback() {
 });
 ```
 ## Service Discovery
+### Starting Service Discovery
 Prior to connecting to a service, the client must discover said service.
 ```java
 client.startDiscovery(new DiscoveryCallback() {
@@ -102,6 +103,21 @@ client.startDiscovery(new DiscoveryCallback() {
     @Override
     public void onFailure() {
         // Invoked when the request to the Wi-Fi P2P Framework to start the service discovery was unsuccessful
+    }
+});
+```
+### Stopping Service Discovery
+If for whatever reason, the client would like to stop discovering services.
+```java
+client.stopDiscovery(new ResultCallback() {
+    @Override
+    public void onSuccess() {
+        // Invoked when the request to the Wi-Fi P2P Framework to stop service discovery was successful
+    }
+
+    @Override
+    public void onFailure() {
+        // Invoked when the request to the Wi-Fi P2P Framework to stop service discovery was unsuccessful
     }
 });
 ```
