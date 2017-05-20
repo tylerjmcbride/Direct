@@ -9,13 +9,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 
-import github.tylerjmcbride.direct.Client;
+import github.tylerjmcbride.direct.WifiDirectClient;
 import github.tylerjmcbride.direct.R;
 import github.tylerjmcbride.direct.views.activities.DirectActivity;
 
 public class ClientFragment extends Fragment {
 
-    private Client client;
+    private WifiDirectClient client;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -53,7 +53,7 @@ public class ClientFragment extends Fragment {
         return view;
     }
 
-    public void setClient(Client client) {
+    public void setClient(WifiDirectClient client) {
         this.client = client;
     }
 }

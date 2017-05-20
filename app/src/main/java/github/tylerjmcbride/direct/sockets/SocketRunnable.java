@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
-import github.tylerjmcbride.direct.Direct;
+import github.tylerjmcbride.direct.WifiDirect;
 import github.tylerjmcbride.direct.callbacks.ResultCallback;
 import github.tylerjmcbride.direct.sockets.listeners.SocketInitializationCompleteListener;
 
@@ -53,10 +53,10 @@ public class SocketRunnable extends AbstractSocketRunnable implements Runnable {
         } catch(IOException e) {
             // Attempt to connect to socket once again
             if(attemptsLeft > 0) {
-                Log.d(Direct.TAG, String.format("Failed to connect to %s, will attempt to retry.", address));
+                Log.d(WifiDirect.TAG, String.format("Failed to connect to %s, will attempt to retry.", address));
                 connect(attemptsLeft - 1);
             } else {
-                Log.d(Direct.TAG, String.format("Failed to connect to %s.", address));
+                Log.d(WifiDirect.TAG, String.format("Failed to connect to %s.", address));
                 listener.onFailure();
             }
         }

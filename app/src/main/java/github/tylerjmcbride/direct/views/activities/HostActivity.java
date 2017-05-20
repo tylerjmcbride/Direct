@@ -4,20 +4,20 @@ import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
 
-import github.tylerjmcbride.direct.Host;
+import github.tylerjmcbride.direct.WifiDirectHost;
 import github.tylerjmcbride.direct.R;
 import github.tylerjmcbride.direct.views.fragments.HostFragment;
 
 public class HostActivity extends FragmentActivity {
 
-    private Host host;
+    private WifiDirectHost host;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         setContentView(R.layout.activity_host);
-        host = new Host(getApplication(), DirectActivity.SERVICE_TAG, "MY_UNIQUE_INSTANCE_TAG");
+        host = new WifiDirectHost(getApplication(), DirectActivity.SERVICE_TAG, "MY_UNIQUE_INSTANCE_TAG");
 
         // Check that the activity is using the layout version with
         // the fragment_container FrameLayout
@@ -40,6 +40,12 @@ public class HostActivity extends FragmentActivity {
             // Add the fragment to the 'fragment_container' FrameLayout
             getSupportFragmentManager().beginTransaction().add(R.id.fragment_container, hostFragment).commit();
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        host.cleanUp();
     }
 
     @Override

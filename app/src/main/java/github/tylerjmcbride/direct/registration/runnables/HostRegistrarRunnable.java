@@ -8,8 +8,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 
-import github.tylerjmcbride.direct.Direct;
-import github.tylerjmcbride.direct.Host;
+import github.tylerjmcbride.direct.WifiDirect;
+import github.tylerjmcbride.direct.WifiDirectHost;
 import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
 import github.tylerjmcbride.direct.registration.listeners.HandshakeListener;
 import github.tylerjmcbride.direct.registration.model.Adieu;
@@ -19,10 +19,10 @@ import github.tylerjmcbride.direct.sockets.listeners.ServerSocketInitializationL
 
 public class HostRegistrarRunnable extends ServerSocketRunnable {
 
-    private Host host;
+    private WifiDirectHost host;
     private HandshakeListener handshakeListener;
 
-    public HostRegistrarRunnable(int port, int maxServerConnections, Handler handler, Host host, HandshakeListener handshakeListener, ServerSocketInitializationListener listener) {
+    public HostRegistrarRunnable(int port, int maxServerConnections, Handler handler, WifiDirectHost host, HandshakeListener handshakeListener, ServerSocketInitializationListener listener) {
         super(port, maxServerConnections, handler, listener);
         this.host = host;
         this.handshakeListener = handshakeListener;
@@ -41,7 +41,7 @@ public class HostRegistrarRunnable extends ServerSocketRunnable {
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
-                        handshakeListener.onHandshake(clientInfo);
+                        handshakeListener.onClientAttemptingToRegister(clientInfo);
                     }
                 });
 
@@ -57,20 +57,20 @@ public class HostRegistrarRunnable extends ServerSocketRunnable {
                 handler.post(new Runnable() {
                     @Override
                     public void run() {
-                        handshakeListener.onAdieu(clientInfo);
+                        handshakeListener.onClientAttemptingToUnregister(clientInfo);
                     }
                 });
             }
         } catch (ClassNotFoundException ex) {
-            Log.e(Direct.TAG, "Failed to read client registration data.");
+            Log.e(WifiDirect.TAG, "Failed to read client registration data.");
         } catch (IOException ex) {
-            Log.e(Direct.TAG, "Failed to complete registration transaction.");
+            Log.e(WifiDirect.TAG, "Failed to complete registration transaction.");
         } finally {
             if (clientSocket != null && clientSocket.isConnected()) {
                 try {
                     clientSocket.close();
                 } catch (IOException e) {
-                    Log.e(Direct.TAG, "Failed to close client socket.");
+                    Log.e(WifiDirect.TAG, "Failed to close client socket.");
                 }
             }
         }

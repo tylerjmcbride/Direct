@@ -15,7 +15,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import github.tylerjmcbride.direct.Host;
+import github.tylerjmcbride.direct.WifiDirectHost;
 import github.tylerjmcbride.direct.R;
 import github.tylerjmcbride.direct.callbacks.ClientCallback;
 import github.tylerjmcbride.direct.callbacks.ResultCallback;
@@ -24,7 +24,7 @@ import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
 
 public class ServiceFragment extends Fragment {
 
-    private Host host;
+    private WifiDirectHost host;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -154,7 +154,7 @@ public class ServiceFragment extends Fragment {
         Toast.makeText(ServiceFragment.this.getContext(), toast, Toast.LENGTH_SHORT).show();
     }
 
-    public void setHost(Host host) {
+    public void setHost(WifiDirectHost host) {
         this.host = host;
     }
 }

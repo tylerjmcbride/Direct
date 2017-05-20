@@ -15,7 +15,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import github.tylerjmcbride.direct.Client;
+import github.tylerjmcbride.direct.WifiDirectClient;
 import github.tylerjmcbride.direct.R;
 import github.tylerjmcbride.direct.callbacks.ConnectionCallback;
 import github.tylerjmcbride.direct.callbacks.ResultCallback;
@@ -23,7 +23,7 @@ import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
 
 public class ConnectedFragment extends Fragment {
 
-    private Client client;
+    private WifiDirectClient client;
     private WifiP2pDevice hostDevice;
 
     @Override
@@ -152,7 +152,7 @@ public class ConnectedFragment extends Fragment {
         this.hostDevice = hostDevice;
     }
 
-    public void setClient(Client client) {
+    public void setClient(WifiDirectClient client) {
         this.client = client;
     }
 }

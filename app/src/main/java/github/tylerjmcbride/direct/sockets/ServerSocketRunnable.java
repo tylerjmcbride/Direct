@@ -10,7 +10,7 @@ import java.net.SocketException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import github.tylerjmcbride.direct.Direct;
+import github.tylerjmcbride.direct.WifiDirect;
 import github.tylerjmcbride.direct.callbacks.ResultCallback;
 import github.tylerjmcbride.direct.sockets.listeners.ServerSocketInitializationListener;
 
@@ -57,13 +57,13 @@ public abstract class ServerSocketRunnable extends AbstractSocketRunnable implem
             }
 
             // Current thread has been interrupted, clean up registration socket
-            Log.d(Direct.TAG, String.format("Succeeded to close socket running on port %d.", serverSocket.getLocalPort()));
+            Log.d(WifiDirect.TAG, String.format("Succeeded to close socket running on port %d.", serverSocket.getLocalPort()));
             serverSocket.close();
         } catch (SocketException ex) {
             // This exception is used to interrupt the current thread
-            Log.d(Direct.TAG, String.format("Succeeded to close socket running on port %d.", serverSocket.getLocalPort()));
+            Log.d(WifiDirect.TAG, String.format("Succeeded to close socket running on port %d.", serverSocket.getLocalPort()));
         } catch (IOException ex) {
-            Log.e(Direct.TAG, String.format("Unexpected exception thrown by socket %d.", serverSocket.getLocalPort()));
+            Log.e(WifiDirect.TAG, String.format("Unexpected exception thrown by socket %d.", serverSocket.getLocalPort()));
         }
 
         // Clean up executor service
@@ -76,7 +76,7 @@ public abstract class ServerSocketRunnable extends AbstractSocketRunnable implem
         initialize(port, maxServerConnections, DEFAULT_BUFFER_SIZE, new ServerSocketInitializationListener() {
             @Override
             public void onSuccess(final ServerSocket serverSocket) {
-                Log.d(Direct.TAG, String.format("Succeeded to initialize socket on port %d.", serverSocket.getLocalPort()));
+                Log.d(WifiDirect.TAG, String.format("Succeeded to initialize socket on port %d.", serverSocket.getLocalPort()));
                 listener.onSuccess(serverSocket);
                 acceptConnections(serverSocket);
             }
@@ -87,14 +87,14 @@ public abstract class ServerSocketRunnable extends AbstractSocketRunnable implem
                 initialize(0, maxServerConnections, DEFAULT_BUFFER_SIZE, new ServerSocketInitializationListener() {
                     @Override
                     public void onSuccess(final ServerSocket serverSocket) {
-                        Log.d(Direct.TAG, String.format("Succeeded to initialize socket on port %d.", serverSocket.getLocalPort()));
+                        Log.d(WifiDirect.TAG, String.format("Succeeded to initialize socket on port %d.", serverSocket.getLocalPort()));
                         listener.onSuccess(serverSocket);
                         acceptConnections(serverSocket);
                     }
 
                     @Override
                     public void onFailure() {
-                        Log.d(Direct.TAG, "Failed to initialize socket");
+                        Log.d(WifiDirect.TAG, "Failed to initialize socket");
                         listener.onFailure();
                     }
                 });
@@ -116,7 +116,7 @@ public abstract class ServerSocketRunnable extends AbstractSocketRunnable implem
             socket.setReceiveBufferSize(bufferSize);
             listener.onSuccess(socket);
         } catch (IOException ex) {
-            Log.d(Direct.TAG, String.format("The port %d is unavailable.", port));
+            Log.d(WifiDirect.TAG, String.format("The port %d is unavailable.", port));
             listener.onFailure();
         }
     }

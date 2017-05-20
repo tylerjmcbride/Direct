@@ -7,8 +7,6 @@ import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager.ActionListener;
-import android.net.wifi.p2p.WifiP2pManager.ConnectionInfoListener;
-import android.net.wifi.p2p.WifiP2pManager.GroupInfoListener;
 import android.net.wifi.p2p.WifiP2pManager.PeerListListener;
 import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
 import android.util.Log;
@@ -23,8 +21,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import github.tylerjmcbride.direct.broadcasts.DirectBroadcastReceiver;
 import github.tylerjmcbride.direct.callbacks.ClientCallback;
+import github.tylerjmcbride.direct.callbacks.ConnectionAndGroupInfoAvailableListener;
 import github.tylerjmcbride.direct.callbacks.ResultCallback;
 import github.tylerjmcbride.direct.callbacks.ServiceCallback;
 import github.tylerjmcbride.direct.callbacks.SingleResultCallback;
@@ -34,7 +32,7 @@ import github.tylerjmcbride.direct.registration.listeners.HandshakeListener;
 import github.tylerjmcbride.direct.sockets.listeners.ServerSocketInitializationListener;
 import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
 
-public class Host extends Direct {
+public class WifiDirectHost extends WifiDirect {
 
     private HostRegistrar registrar;
     private WifiP2pDnsSdServiceInfo serviceInfo;
@@ -46,103 +44,13 @@ public class Host extends Direct {
 
     private Map<WifiP2pDeviceInfo, WifiP2pDevice> clients = new HashMap<>();
 
-    public Host(Application application, final String service, final String instance) {
+    public WifiDirectHost(Application application, final String service, final String instance) {
         super(application, service);
         record.put(SERVICE_NAME_TAG, service);
         record.put(INSTANCE_NAME_TAG, instance);
 
-        registrar = new HostRegistrar(this, handler, new HandshakeListener() {
-            @Override
-            public void onHandshake(final WifiP2pDeviceInfo clientInfo) {
-                manager.requestPeers(channel, new PeerListListener() {
-                    @Override
-                    public void onPeersAvailable(WifiP2pDeviceList peers) {
-                        WifiP2pDevice clientDevice = peers.get(clientInfo.getMacAddress());
-
-                        if(clientDevice != null) {
-                            Log.d(TAG, String.format("Succeeded to register client %s.", clientInfo.getMacAddress()));
-                            clients.put(clientInfo, clientDevice);
-
-                            if(clientCallback != null) {
-                                clientCallback.onConnected(clientDevice);
-                            }
-                        } else {
-                            Log.d(TAG, String.format("Failed to register client %s.", clientInfo.getMacAddress()));
-                        }
-                    }
-                });
-            }
-
-            @Override
-            public void onAdieu(WifiP2pDeviceInfo clientInfo) {
-                Log.d(TAG, String.format("Succeeded to unregister client %s.", clientInfo.getMacAddress()));
-                WifiP2pDevice clientDevice = clients.remove(clientInfo);
-
-                if(clientCallback != null && clientDevice != null) {
-                    clientCallback.onDisconnected(clientDevice);
-                }
-            }
-        });
-
-        receiver = new DirectBroadcastReceiver() {
-            @Override
-            protected void connectionChanged(NetworkInfo networkInfo) {
-                if(networkInfo.isAvailable()) {
-                    Log.d(TAG, "Succeeded to confirm network connectivity is available.");
-                    manager.requestConnectionInfo(channel, new ConnectionInfoListener() {
-                        @Override
-                        public void onConnectionInfoAvailable(final WifiP2pInfo p2pInfo) {
-                            Log.d(TAG, "Succeeded to retrieve connection information.");
-                            manager.requestGroupInfo(channel, new GroupInfoListener() {
-                                @Override
-                                public void onGroupInfoAvailable(WifiP2pGroup p2pGroup) {
-                                    Log.d(TAG, "Succeeded to retrieve group information.");
-                                    if(p2pGroup != null) {
-                                        Collection<WifiP2pDevice> clientList = p2pGroup.getClientList();
-
-                                        // Remove clients whom no longer are connected
-                                        for (WifiP2pDeviceInfo clientInfo : clients.keySet()) {
-                                            if (!clientList.contains(clients.get(clientInfo))) {
-                                                Log.d(TAG, clientInfo.getMacAddress() + " has disconnected.");
-                                                WifiP2pDevice clientDevice = clients.remove(clientInfo);
-
-                                                if (clientCallback != null) {
-                                                    clientCallback.onDisconnected(clientDevice);
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            });
-                        }
-                    });
-                } else {
-                    Log.d(TAG, "Succeeded to confirm network connectivity is available.");
-                    clearResources();
-                }
-            }
-
-            @Override
-            protected void stateChanged(boolean wifiEnabled) {
-                if(wifiEnabled) {
-                    Log.d(TAG, "Succeeded to confirm Wi-Fi P2P availability.");
-                } else {
-                    Log.d(TAG, "Failed to confirm Wi-Fi P2P availability.");
-                    clearResources();
-                }
-            }
-
-            @Override
-            protected void peersChanged() {
-                pruneLostClients();
-            }
-
-            @Override
-            protected void thisDeviceChanged(WifiP2pDevice thisDevice) {
-                Host.this.thisDevice = new WifiP2pDevice(thisDevice);
-                thisDeviceInfo.setMacAddress(thisDevice.deviceAddress);
-            }
-        };
+        registrar = new HostRegistrar(this, handler, new HostHandShakeListener());
+        receiver = new HostDirectBroadcastReceiver();
         application.getApplicationContext().registerReceiver(receiver, intentFilter);
     }
 
@@ -199,8 +107,8 @@ public class Host extends Direct {
                                     @Override
                                     public void onSuccess() {
                                         Log.d(TAG, "Succeeded to add local service.");
-                                        Host.this.clientCallback = clientCallback;
-                                        Host.this.serviceCallback = serviceCallback;
+                                        WifiDirectHost.this.clientCallback = clientCallback;
+                                        WifiDirectHost.this.serviceCallback = serviceCallback;
                                         serviceBroadcastingThread = new Thread(new ServiceBroadcastingRunnable());
                                         serviceBroadcastingThread.start();
                                         callback.onSuccess();
@@ -252,7 +160,7 @@ public class Host extends Direct {
                     serviceBroadcastingThread.interrupt();
                 }
 
-                clearResources();
+                onServiceUnavailable();
                 removeGroup(callback);
             }
 
@@ -277,11 +185,11 @@ public class Host extends Direct {
     }
 
     /**
-     * Will compare {@link Host#clients} to the {@link WifiP2pDeviceList} to unsure that all
-     * registered clients are within range. If any of the existing {@link Host#clients} are out of
+     * Will compare {@link WifiDirectHost#clients} to the {@link WifiP2pDeviceList} to ensure that all
+     * registered clients are within range. If any of the existing {@link WifiDirectHost#clients} are out of
      * range they will be pruned.
      */
-    private void pruneLostClients() {
+    private void unregisterLostClients() {
         manager.requestPeers(channel, new PeerListListener() {
             @Override
             public void onPeersAvailable(WifiP2pDeviceList peers) {
@@ -311,9 +219,32 @@ public class Host extends Direct {
     }
 
     /**
-     * Cleans the resources, this method should be called after the service has been concluded.
+     * Will compare {@link WifiDirectHost#clients} to the {@link WifiP2pGroup} to ensure that all
+     * registered clients are still within the group.
+     *
+     * @param p2pGroup The respective {@link WifiP2pGroup}.
      */
-    private void clearResources() {
+    private void unregisterLostClients(WifiP2pGroup p2pGroup) {
+        Collection<WifiP2pDevice> clientList = p2pGroup.getClientList();
+
+        // Remove clients whom no longer are connected
+        for (WifiP2pDeviceInfo clientInfo : clients.keySet()) {
+            if (!clientList.contains(clients.get(clientInfo))) {
+                Log.d(TAG, clientInfo.getMacAddress() + " has disconnected.");
+                WifiP2pDevice clientDevice = clients.remove(clientInfo);
+
+                if (clientCallback != null) {
+                    clientCallback.onDisconnected(clientDevice);
+                }
+            }
+        }
+    }
+
+    /**
+     * The service is no longer available; therefore, resources corresponding to the active service
+     * must be cleared. This method should be called after the service has concluded.
+     */
+    private void onServiceUnavailable() {
         if(serviceCallback != null) {
             serviceCallback.onServiceStopped();
             serviceCallback = null;
@@ -325,15 +256,108 @@ public class Host extends Direct {
         clients.clear();
     }
 
-    /**
-     * If this instance is garbage collected, attempt to end the service.
-     * @throws Throwable Throws any given exception.
-     */
     @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
+    public void cleanUp() {
+        super.cleanUp();
         if(manager != null && channel != null) {
             manager.clearLocalServices(channel, null);
+        }
+    }
+
+    /**
+     * This listener listens for clients requesting to either register or unregister. This listener
+     * will effectively manage the {@link WifiDirectHost#clients} resource.
+     */
+    class HostHandShakeListener implements HandshakeListener {
+        @Override
+        public void onClientAttemptingToRegister(final WifiP2pDeviceInfo clientInfo) {
+            manager.requestPeers(channel, new PeerListListener() {
+                @Override
+                public void onPeersAvailable(WifiP2pDeviceList peers) {
+                    WifiP2pDevice clientDevice = peers.get(clientInfo.getMacAddress());
+
+                    if(clientDevice != null) {
+                        Log.d(TAG, String.format("Succeeded to register client %s.", clientInfo.getMacAddress()));
+                        clients.put(clientInfo, clientDevice);
+
+                        if(clientCallback != null) {
+                            clientCallback.onConnected(clientDevice);
+                        }
+                    } else {
+                        Log.d(TAG, String.format("Failed to register client %s.", clientInfo.getMacAddress()));
+                    }
+                }
+            });
+        }
+
+        @Override
+        public void onClientAttemptingToUnregister(WifiP2pDeviceInfo clientInfo) {
+            Log.d(TAG, String.format("Succeeded to unregister client %s.", clientInfo.getMacAddress()));
+            WifiP2pDevice clientDevice = clients.remove(clientInfo);
+
+            if(clientCallback != null && clientDevice != null) {
+                clientCallback.onDisconnected(clientDevice);
+            }
+        }
+    }
+
+    class HostDirectBroadcastReceiver extends WifiDirectBroadcastReceiver {
+        @Override
+        protected void onConnectionChanged(NetworkInfo networkInfo) {
+            if(networkInfo.isAvailable()) {
+                onNetworkConnectivityAvailable();
+            } else {
+                onNetworkConnectivityUnavailable();
+            }
+        }
+
+        private void onNetworkConnectivityAvailable() {
+            requestWifiP2pInfo(new ConnectionAndGroupInfoAvailableListener() {
+                @Override
+                public void onConnectionAndGroupInfoAvailable(WifiP2pInfo p2pInfo, WifiP2pGroup p2pGroup) {
+                    if(p2pGroup != null) {
+                        unregisterLostClients(p2pGroup);
+                    }
+                }
+            });
+        }
+
+        private void onNetworkConnectivityUnavailable() {
+            Log.d(TAG, "Succeeded to confirm network connectivity is available.");
+            onServiceUnavailable();
+        }
+
+        @Override
+        protected void onAvailablePeersChanged() {
+            Log.d(TAG, "Failed to confirm network connectivity is available.");
+            unregisterLostClients();
+        }
+
+        @Override
+        protected void onWifiP2pEnabled() {
+            Log.d(TAG, "Succeeded to confirm Wi-Fi P2P availability.");
+        }
+
+        @Override
+        protected void onWifiP2pDisabled() {
+            Log.d(TAG, "Failed to confirm Wi-Fi P2P availability.");
+            onServiceUnavailable();
+        }
+
+        @Override
+        protected void onPeerDiscoveryStarted() {
+            Log.d(TAG, "Succeeded to confirm peer discovery has started.");
+        }
+
+        @Override
+        protected void onPeerDiscoveryStopped() {
+            Log.d(TAG, "Succeeded to confirm peer discovery has stopped.");
+        }
+
+        @Override
+        protected void onThisDeviceChanged(WifiP2pDevice thisDevice) {
+            WifiDirectHost.this.thisDevice = new WifiP2pDevice(thisDevice);
+            thisDeviceInfo.setMacAddress(thisDevice.deviceAddress);
         }
     }
 

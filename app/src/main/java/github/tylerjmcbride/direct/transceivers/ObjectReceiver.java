@@ -8,7 +8,7 @@ import java.net.ServerSocket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import github.tylerjmcbride.direct.Direct;
+import github.tylerjmcbride.direct.WifiDirect;
 import github.tylerjmcbride.direct.sockets.ServerSocketRunnable;
 import github.tylerjmcbride.direct.sockets.listeners.ServerSocketInitializationListener;
 import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
@@ -68,9 +68,9 @@ public class ObjectReceiver {
             try {
                 serverSocket.close();
                 serverSocket = null;
-                Log.d(Direct.TAG, "Succeeded to stop object receiver.");
+                Log.d(WifiDirect.TAG, "Succeeded to stop object receiver.");
             } catch (IOException e) {
-                Log.e(Direct.TAG, "Failed to stop object receiver.");
+                Log.e(WifiDirect.TAG, "Failed to stop object receiver.");
             }
         }
     }

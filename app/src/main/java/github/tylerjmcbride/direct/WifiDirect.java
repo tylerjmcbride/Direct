@@ -7,10 +7,12 @@ import android.content.IntentFilter;
 import android.net.wifi.WifiManager;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pGroup;
+import android.net.wifi.p2p.WifiP2pInfo;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.net.wifi.p2p.WifiP2pManager.ActionListener;
 import android.net.wifi.p2p.WifiP2pManager.Channel;
 import android.net.wifi.p2p.WifiP2pManager.ChannelListener;
+import android.net.wifi.p2p.WifiP2pManager.ConnectionInfoListener;
 import android.net.wifi.p2p.WifiP2pManager.GroupInfoListener;
 import android.os.Handler;
 import android.os.Looper;
@@ -20,11 +22,12 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import github.tylerjmcbride.direct.callbacks.ResultCallback;
+import github.tylerjmcbride.direct.callbacks.ConnectionAndGroupInfoAvailableListener;
 import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
 import github.tylerjmcbride.direct.transceivers.ObjectReceiver;
 import github.tylerjmcbride.direct.transceivers.ObjectTransmitter;
 
-public abstract class Direct {
+public abstract class WifiDirect {
 
     public static final String TAG = "Direct";
     public static final String SERVICE_TYPE = "_presence._tcp";
@@ -49,11 +52,11 @@ public abstract class Direct {
     protected WifiP2pDeviceInfo thisDeviceInfo;
 
     /**
-     * Constructor for the abstract class {@link Direct}.
+     * Constructor for the abstract class {@link WifiDirect}.
      * @param application The {@link Application}.
      * @param service The service type.
      */
-    public Direct(Application application, String service) {
+    public WifiDirect(Application application, String service) {
         this.service = service;
 
         this.intentFilter = new IntentFilter();
@@ -74,10 +77,9 @@ public abstract class Direct {
         this.channel = manager.initialize(context, looper, new ChannelListener() {
             @Override
             public void onChannelDisconnected() {
-                Direct.this.channel = manager.initialize(context, looper, this);
+                WifiDirect.this.channel = manager.initialize(context, looper, this);
             }
         });
-
         this.thisDeviceInfo = new WifiP2pDeviceInfo(wifiManager.getConnectionInfo().getMacAddress());
     }
 
@@ -95,6 +97,25 @@ public abstract class Direct {
      */
     public WifiP2pDeviceInfo getThisDeviceInfo() {
         return new WifiP2pDeviceInfo(thisDeviceInfo);
+    }
+
+    /**
+     * Will request both the {@link WifiP2pInfo} and {@link WifiP2pGroup} from the framework.
+     */
+    protected void requestWifiP2pInfo(final ConnectionAndGroupInfoAvailableListener listener) {
+        manager.requestConnectionInfo(channel, new ConnectionInfoListener() {
+            @Override
+            public void onConnectionInfoAvailable(final WifiP2pInfo p2pInfo) {
+                Log.d(TAG, "Succeeded to retrieve connection information.");
+                manager.requestGroupInfo(channel, new GroupInfoListener() {
+                    @Override
+                    public void onGroupInfoAvailable(final WifiP2pGroup p2pGroup) {
+                        Log.d(TAG, "Succeeded to retrieve group information.");
+                        listener.onConnectionAndGroupInfoAvailable(p2pInfo, p2pGroup);
+                    }
+                });
+            }
+        });
     }
 
     /**
@@ -159,14 +180,8 @@ public abstract class Direct {
         }
     }
 
-    /**
-     * If this instance is garbage collected, unregister the receiver.
-     * @throws Throwable Throws any given exception.
-     */
-    @Override
-    protected void finalize() throws Throwable {
-        if(context != null) {
-            context.unregisterReceiver(receiver);
-        }
+    public void cleanUp() {
+        Log.d(TAG, "Attempting to clean up resources.");
+        context.unregisterReceiver(receiver);
     }
 }

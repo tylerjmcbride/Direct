@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.net.Socket;
 
-import github.tylerjmcbride.direct.Direct;
+import github.tylerjmcbride.direct.WifiDirect;
 import github.tylerjmcbride.direct.sockets.ServerSocketRunnable;
 import github.tylerjmcbride.direct.sockets.listeners.ServerSocketInitializationListener;
 import github.tylerjmcbride.direct.transceivers.callbacks.ObjectCallback;
@@ -27,7 +27,7 @@ public class ObjectReceiverRunnable extends ServerSocketRunnable {
         try {
             ObjectInputStream inputStream = new ObjectInputStream(new BufferedInputStream(connectedSocket.getInputStream()));
             final Object object = inputStream.readObject();
-            Log.d(Direct.TAG, "Succeeded to receive data.");
+            Log.d(WifiDirect.TAG, "Succeeded to receive data.");
             handler.post(new Runnable() {
                 @Override
                 public void run() {
@@ -35,15 +35,15 @@ public class ObjectReceiverRunnable extends ServerSocketRunnable {
                 }
             });
         } catch (ClassNotFoundException ex) {
-            Log.e(Direct.TAG, "Failed to read data.");
+            Log.e(WifiDirect.TAG, "Failed to read data.");
         } catch (IOException ex) {
-            Log.e(Direct.TAG, "Failed to receive data.");
+            Log.e(WifiDirect.TAG, "Failed to receive data.");
         } finally {
             if (connectedSocket != null && connectedSocket.isConnected()) {
                 try {
                     connectedSocket.close();
                 } catch (IOException e) {
-                    Log.e(Direct.TAG, "Failed to close socket.");
+                    Log.e(WifiDirect.TAG, "Failed to close socket.");
                 }
             }
         }

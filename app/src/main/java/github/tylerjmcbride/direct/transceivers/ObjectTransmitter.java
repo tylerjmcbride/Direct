@@ -12,7 +12,7 @@ import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import github.tylerjmcbride.direct.Direct;
+import github.tylerjmcbride.direct.WifiDirect;
 import github.tylerjmcbride.direct.callbacks.ResultCallback;
 import github.tylerjmcbride.direct.sockets.listeners.SocketInitializationCompleteListener;
 import github.tylerjmcbride.direct.sockets.SocketRunnable;
@@ -42,7 +42,7 @@ public class ObjectTransmitter {
                     outputStream.flush();
                     outputStream.close();
 
-                    Log.d(Direct.TAG, "Succeeded to send data.");
+                    Log.d(WifiDirect.TAG, "Succeeded to send data.");
                     handler.post(new Runnable() {
                         @Override
                         public void run() {
@@ -50,7 +50,7 @@ public class ObjectTransmitter {
                         }
                     });
                 } catch (IOException ex) {
-                    Log.e(Direct.TAG, "Failed to send data.");
+                    Log.e(WifiDirect.TAG, "Failed to send data.");
                     handler.post(new Runnable() {
                         @Override
                         public void run() {
@@ -63,7 +63,7 @@ public class ObjectTransmitter {
                             try {
                                 socket.close();
                             } catch (IOException e) {
-                                Log.e(Direct.TAG, "Failed to close socket.");
+                                Log.e(WifiDirect.TAG, "Failed to close socket.");
                             }
                         }
                     }

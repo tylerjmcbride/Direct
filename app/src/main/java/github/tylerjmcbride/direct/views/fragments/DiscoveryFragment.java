@@ -14,7 +14,7 @@ import android.widget.Toast;
 
 import java.util.ArrayList;
 
-import github.tylerjmcbride.direct.Client;
+import github.tylerjmcbride.direct.WifiDirectClient;
 import github.tylerjmcbride.direct.R;
 import github.tylerjmcbride.direct.callbacks.DiscoveryCallback;
 import github.tylerjmcbride.direct.callbacks.ResultCallback;
@@ -22,7 +22,7 @@ import github.tylerjmcbride.direct.views.adapters.WifiP2PDeviceAdapter;
 
 public class DiscoveryFragment extends Fragment {
 
-    private Client client;
+    private WifiDirectClient client;
 
     private ListView discoveryList;
     private WifiP2PDeviceAdapter adapter;
@@ -131,7 +131,7 @@ public class DiscoveryFragment extends Fragment {
         transaction.commit();
     }
 
-    public void setClient(Client client) {
+    public void setClient(WifiDirectClient client) {
         this.client = client;
     }
 }

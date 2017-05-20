@@ -9,13 +9,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 
-import github.tylerjmcbride.direct.Host;
+import github.tylerjmcbride.direct.WifiDirectHost;
 import github.tylerjmcbride.direct.R;
 import github.tylerjmcbride.direct.views.activities.DirectActivity;
 
 public class HostFragment extends Fragment {
 
-    private Host host;
+    private WifiDirectHost host;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -53,7 +53,7 @@ public class HostFragment extends Fragment {
         return view;
     }
 
-    public void setHost(Host host) {
+    public void setHost(WifiDirectHost host) {
         this.host = host;
     }
 }

@@ -9,8 +9,8 @@ import java.net.ServerSocket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import github.tylerjmcbride.direct.Direct;
-import github.tylerjmcbride.direct.Host;
+import github.tylerjmcbride.direct.WifiDirect;
+import github.tylerjmcbride.direct.WifiDirectHost;
 import github.tylerjmcbride.direct.registration.listeners.HandshakeListener;
 import github.tylerjmcbride.direct.registration.runnables.HostRegistrarRunnable;
 import github.tylerjmcbride.direct.sockets.ServerSocketRunnable;
@@ -26,12 +26,12 @@ public class HostRegistrar {
 
     private ExecutorService executor = Executors.newSingleThreadExecutor();
 
-    private Host host;
+    private WifiDirectHost host;
     private Handler handler;
     private ServerSocket serverSocket;
     private HandshakeListener handshakeListener;
 
-    public HostRegistrar(Host host, Handler handler, HandshakeListener handshakeListener) {
+    public HostRegistrar(WifiDirectHost host, Handler handler, HandshakeListener handshakeListener) {
         this.host = host;
         this.handler = handler;
         this.handshakeListener = handshakeListener;
@@ -76,9 +76,9 @@ public class HostRegistrar {
             try {
                 serverSocket.close();
                 serverSocket = null;
-                Log.d(Direct.TAG, "Succeeded to stop registrar.");
+                Log.d(WifiDirect.TAG, "Succeeded to stop registrar.");
             } catch (IOException e) {
-                Log.e(Direct.TAG, "Failed to stop registrar.");
+                Log.e(WifiDirect.TAG, "Failed to stop registrar.");
             }
         }
     }

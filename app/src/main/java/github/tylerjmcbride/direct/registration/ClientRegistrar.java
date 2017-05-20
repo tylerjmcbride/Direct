@@ -11,8 +11,8 @@ import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import github.tylerjmcbride.direct.Client;
-import github.tylerjmcbride.direct.Direct;
+import github.tylerjmcbride.direct.WifiDirectClient;
+import github.tylerjmcbride.direct.WifiDirect;
 import github.tylerjmcbride.direct.model.WifiP2pDeviceInfo;
 import github.tylerjmcbride.direct.registration.listeners.RegisteredWithServerListener;
 import github.tylerjmcbride.direct.registration.listeners.UnregisteredWithServerListener;
@@ -25,10 +25,10 @@ public class ClientRegistrar {
 
     private ExecutorService executor = Executors.newSingleThreadExecutor();
 
-    private Client client;
+    private WifiDirectClient client;
     private Handler handler;
 
-    public ClientRegistrar(Client client, Handler handler) {
+    public ClientRegistrar(WifiDirectClient client, Handler handler) {
         this.client = client;
         this.handler = handler;
     }
@@ -60,8 +60,8 @@ public class ClientRegistrar {
                     outputStream.close();
                     inputStream.close();
                 } catch (ClassNotFoundException | ClassCastException | IOException ex) {
-                    Log.e(Direct.TAG, "Failed to register with server.");
-                    Log.e(Direct.TAG, ex.getMessage());
+                    Log.e(WifiDirect.TAG, "Failed to register with server.");
+                    Log.e(WifiDirect.TAG, ex.getMessage());
                     handler.post(new Runnable() {
                         @Override
                         public void run() {
@@ -72,7 +72,7 @@ public class ClientRegistrar {
                     try {
                         hostSocket.close();
                     } catch (Exception ex) {
-                        Log.e(Direct.TAG, "Failed to close registration socket.");
+                        Log.e(WifiDirect.TAG, "Failed to close registration socket.");
                     }
                 }
             }
@@ -109,7 +109,7 @@ public class ClientRegistrar {
 
                     outputStream.close();
                 } catch (IOException ex) {
-                    Log.e(Direct.TAG, "Failed to unregister with server.");
+                    Log.e(WifiDirect.TAG, "Failed to unregister with server.");
                     handler.post(new Runnable() {
                         @Override
                         public void run() {
@@ -120,7 +120,7 @@ public class ClientRegistrar {
                     try {
                         hostSocket.close();
                     } catch (Exception ex) {
-                        Log.e(Direct.TAG, "Failed to close registration socket.");
+                        Log.e(WifiDirect.TAG, "Failed to close registration socket.");
                     }
                 }
             }
