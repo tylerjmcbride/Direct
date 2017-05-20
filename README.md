@@ -3,24 +3,11 @@ Direct is a library that provides a simplified interface to wrap around the Wi-F
 ## Table of Contents
 - [Initial Setup](#initial-setup)
 - [Instantiation](#instantiation)
--- [Instantiating a Host](#instantiating-a-host)
--- [Instantiating a Client](#instantiating-a-client)
 - [Hosting a Service](#hosting-a-service)
--- [Starting a Service](#starting-a-service)
--- [Stopping a Service](#stopping-a-service)
 - [Service Discovery](#service-discovery)
-- [Hosting a Service](#hosting-a-service)
--- [Starting a Service](#starting-a-service)
--- [Stopping a Service](#stopping-a-service)
-- [Requesting a Connection](#requesting-a-connection)
--- [Connecting to the Host Device](#connecting-to-the-host-device)
--- [Disconnecting from the Host Device](#disconnecting-from-the-host-device)
+- [Connecting to a Service](#connecting-to-a-service)
 - [Data Transfer](#data-transfer)
--- [Sending an Object to a Client](#sending-an-object-to-a-client)
--- [Sending an Object to the Host](#sending-an-object-to-the-host)
 - [Cleaning Up](#cleaning-up)
--- [Cleaning Up Host Resources](#cleaning-up-host-resources)
--- [Cleaning Up Client Resources](#cleaning-up-client-resources)
 ## Initial Setup
 The following must be added to the Android Manifest XML. As this library deals exclusively with service discovery, an API level of 16 is required. 
 ```xml
@@ -118,7 +105,7 @@ client.startDiscovery(new DiscoveryCallback() {
     }
 });
 ```
-## Requesting a Connection
+## Connecting to a Service
 ### Connecting to the Host Device
 After the client has discovered a service that they wish to make a connection with, that client may now connect to that service with the respective host WifiP2pDevice. The physical connection with the host is captured in the ConnectionCallback, the ResultCallback only captures the success of the request to the Wi-Fi Peer-to-Peer Framework.
 ```java
