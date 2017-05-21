@@ -184,7 +184,7 @@ host.send(clientDevice, text, new ResultCallback() {
     }
 });
 ```
-## Sending an Object to the Host
+### Sending an Object to the Host
 ```java
 client.send(text, new ResultCallback() {
     @Override
