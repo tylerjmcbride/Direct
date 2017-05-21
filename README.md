@@ -1,5 +1,5 @@
 # Direct
-Direct is a library that provides a simplified interface to wrap around the Wi-Fi Peer-to-Peer API. In essence, this interface acts as a facade around the Wi-Fi Peer-to-Peer API by hiding its implementation details. This library focuses on [service discovery](https://developer.android.com/training/connect-devices-wirelessly/nsd-wifi-direct.html).
+Direct is a library that provides a simplified interface to wrap around the Wi-Fi Peer-to-Peer API for building applications with a client-server architecture. In essence, this interface acts as a facade around the Wi-Fi Peer-to-Peer API by hiding its implementation details. This library uses [service discovery](https://developer.android.com/training/connect-devices-wirelessly/nsd-wifi-direct.html) exclusively.
 ## Table of Contents
 - [Initial Setup](#initial-setup)
 - [Instantiation](#instantiation)
@@ -19,17 +19,19 @@ The following must be added to the Android Manifest XML. As this library deals e
 <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
 ```
 ## Instantiation
-This library provides two useful classes which are used to interacte with the Wi-Fi P2P framework. These two classes are made to be used exclusively.
+Following from a client-server architecture, the library provides functionality for both a client and a server. This library will refer to a server as a host.
 ### Instantiating a Host
-The instance is very important and must persist throughout the lifecycle of your application so long as you are maintaining connections with clients.
+This instance is very important and must persist throughout the lifecycle of your application so long as you are maintaining connections with clients.
 ```java
 WifiDirectHost host = new WifiDirectHost(getApplication(), "UNIQUE_SERVICE_TAG", "UNIQUE_INSTANCE_TAG");
 ```
+The service tag is important is it is used as a filter for those clients who are looking for the specific service hosted by the implementing application. The service tag must be unique in order to no conflict with other applications using the Wi-Fi Peer-to-Peer API. The instance tag is used to indentify the specific device hosting the service rather than the service itself.
 ### Instantiating a Client
-The instance is very important and must persist throughout the lifecycle of your application so long as you are maintaining connection with a host.
+This instance is very important and must persist throughout the lifecycle of your application so long as you are maintaining connection with a host.
 ```java
 WifiDirectHost host = new WifiDirectClient(getApplication(), "UNIQUE_SERVICE_TAG");
 ```
+The service tag must be a direct match of the host device in order for the client to discover the given service.
 ## Hosting a Service
 ### Starting a Service
 ```java
